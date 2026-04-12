@@ -1,0 +1,1327 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>מערכת ניהול הזמנות ובדיקות זמינות</title>
+<style>
+:root{
+  --bg:#f4f7fb;--panel:#ffffff;--panel-2:#f9fbff;--text:#1f2937;--muted:#667085;--line:#e6ebf2;
+  --primary:#2f6fed;--primary-soft:#eef4ff;--success:#1f9d61;--success-soft:#edf9f2;--warning:#d98b13;
+  --warning-soft:#fff7e8;--danger:#d45151;--danger-soft:#fff1f1;--info:#3483b8;--info-soft:#eef8ff;
+  --radius:20px;--shadow:0 10px 30px rgba(16,24,40,.08);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:Assistant,Arial,sans-serif}
+body{min-height:100vh}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.hidden{display:none !important}
+.app-shell{display:grid;grid-template-columns:285px 1fr;min-height:100vh}
+.sidebar{background:#0f172a;color:#fff;padding:22px 18px;display:flex;flex-direction:column;gap:16px}
+.brand{padding:18px;border:1px solid rgba(255,255,255,.08);border-radius:22px;background:rgba(255,255,255,.05)}
+.brand h1{margin:0 0 6px;font-size:22px}
+.brand p{margin:0;color:rgba(255,255,255,.75);font-size:14px;line-height:1.45}
+.active-employee{padding:12px 14px;border-radius:16px;background:rgba(255,255,255,.08);font-size:14px}
+.nav{display:flex;flex-direction:column;gap:8px}
+.nav button{display:flex;align-items:center;gap:10px;border:0;background:transparent;color:#fff;text-align:right;padding:13px 14px;border-radius:16px;transition:.18s}
+.nav button:hover,.nav button.active{background:rgba(255,255,255,.1)}
+.nav svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.8;fill:none}
+.sidebar .footer-actions{margin-top:auto;display:flex;flex-direction:column;gap:8px}
+.sidebar .footer-actions button{border:0;background:rgba(255,255,255,.07);color:#fff;padding:12px 14px;border-radius:16px;text-align:right}
+.main{padding:26px 26px 30px;overflow:auto}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:18px;margin-bottom:20px}
+.topbar h2{margin:0;font-size:28px}
+.topbar p{margin:6px 0 0;color:var(--muted)}
+.header-actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{border:0;border-radius:16px;padding:12px 16px;display:inline-flex;align-items:center;gap:10px;transition:.18s}
+.btn svg{width:18px;height:18px;stroke:currentColor;stroke-width:1.8;fill:none}
+.btn.primary{background:var(--primary);color:#fff}
+.btn.primary:hover{filter:brightness(.96)}
+.btn.soft{background:var(--panel);border:1px solid var(--line);color:var(--text)}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.btn.success{background:var(--success);color:#fff}
+.btn.warn{background:var(--warning);color:#fff}
+.btn.danger{background:var(--danger);color:#fff}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:24px;box-shadow:var(--shadow)}
+.panel.pad{padding:20px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.kpi{padding:18px;border-radius:22px;background:linear-gradient(180deg,#fff,#fafcff);border:1px solid var(--line)}
+.kpi .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.kpi .num{font-size:34px;font-weight:700;line-height:1}
+.kpi .label{color:var(--muted);font-size:14px}
+.kpi .badge{padding:8px 10px;border-radius:14px;background:var(--primary-soft);color:var(--primary);font-size:12px}
+.section{display:none;animation:fade .2s ease}
+.section.active{display:block}
+@keyframes fade{from{opacity:.2;transform:translateY(6px)}to{opacity:1;transform:none}}
+.entry-screen,.employee-screen{min-height:100vh;background:radial-gradient(circle at top,#f9fbff 0,#eef4ff 45%,#f4f7fb 100%);padding:28px}
+.entry-header{display:flex;justify-content:flex-start}
+.entry-stage{max-width:980px;margin:60px auto 0}
+.entry-card{background:rgba(255,255,255,.88);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:36px;box-shadow:var(--shadow);padding:40px}
+.entry-title{font-size:42px;margin:0 0 10px;text-align:center}
+.entry-sub{color:var(--muted);text-align:center;font-size:18px;max-width:720px;margin:0 auto 28px;line-height:1.6}
+.entry-actions{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:28px}
+.big-choice{border:1px solid #dbe5f3;background:linear-gradient(180deg,#fff,#f7faff);border-radius:30px;padding:30px;min-height:220px;display:flex;flex-direction:column;justify-content:space-between;align-items:flex-start;box-shadow:0 8px 22px rgba(15,23,42,.06);transition:.18s}
+.big-choice:hover{transform:translateY(-2px);box-shadow:0 16px 35px rgba(15,23,42,.10)}
+.big-choice h3{margin:18px 0 8px;font-size:30px}
+.big-choice p{margin:0;color:var(--muted);font-size:16px;line-height:1.6}
+.big-choice .iconWrap{width:64px;height:64px;border-radius:22px;display:grid;place-items:center;background:var(--primary-soft);color:var(--primary)}
+.big-choice .iconWrap svg{width:30px;height:30px;stroke-width:1.8}
+.employee-grid{max-width:1000px;margin:42px auto 0;display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.employee-card{padding:24px;border-radius:26px;border:1px solid var(--line);background:var(--panel);box-shadow:var(--shadow);text-align:center;transition:.18s}
+.employee-card:hover{transform:translateY(-2px)}
+.employee-avatar{width:64px;height:64px;border-radius:22px;margin:0 auto 14px;background:var(--primary-soft);color:var(--primary);display:grid;place-items:center;font-size:24px;font-weight:700}
+.employee-card h3{margin:0 0 6px;font-size:22px}
+.employee-card p{margin:0;color:var(--muted)}
+.employee-top{max-width:1000px;margin:0 auto;text-align:center}
+.employee-top h1{font-size:38px;margin:20px 0 8px}
+.employee-top p{font-size:17px;color:var(--muted);margin:0}
+.record-card{border:1px solid var(--line);border-radius:22px;background:#fff;padding:16px;box-shadow:0 8px 22px rgba(15,23,42,.06)}
+.record-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:10px}
+.record-title{font-weight:700;font-size:18px;line-height:1.4}
+.record-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.meta{padding:10px 12px;border-radius:14px;background:var(--panel-2);font-size:14px}
+.meta label{display:block;color:var(--muted);font-size:12px;margin-bottom:3px}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{display:inline-flex;align-items:center;padding:7px 10px;border-radius:999px;font-size:12px;font-weight:600}
+.chip.primary{background:var(--primary-soft);color:var(--primary)}
+.chip.success{background:var(--success-soft);color:var(--success)}
+.chip.warning{background:var(--warning-soft);color:var(--warning)}
+.chip.danger{background:var(--danger-soft);color:var(--danger)}
+.chip.info{background:var(--info-soft);color:var(--info)}
+.list-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.quick-actions button{border:1px solid var(--line);background:#fff;padding:9px 12px;border-radius:14px}
+.quick-actions button.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.quick-actions button[disabled]{opacity:.55;cursor:not-allowed;background:#f3f4f6;color:#98a2b3}
+.quick-actions button.danger{background:var(--danger-soft);border-color:#efc0c0;color:var(--danger)}
+.tableWrap{overflow:auto}
+.table{width:100%;border-collapse:separate;border-spacing:0 10px}
+.table th{padding:0 12px 10px;color:var(--muted);font-size:13px;font-weight:600;text-align:right}
+.table td{padding:14px 12px;background:#fff;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.table tr td:first-child{border-right:1px solid var(--line);border-top-right-radius:16px;border-bottom-right-radius:16px}
+.table tr td:last-child{border-left:1px solid var(--line);border-top-left-radius:16px;border-bottom-left-radius:16px}
+.filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.filters input,.filters select,.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);background:#fff;border-radius:16px;padding:13px 14px;color:var(--text)}
+.filters > *{min-width:180px}
+.field textarea{min-height:92px;resize:vertical}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.field label{display:block;margin-bottom:8px;font-weight:600;font-size:14px}
+.form-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-start;margin-top:18px}
+.steps{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.step-pill{padding:8px 12px;border-radius:999px;background:var(--panel-2);font-size:13px;color:var(--muted);border:1px solid var(--line)}
+.step-pill.active{background:var(--primary-soft);color:var(--primary);border-color:#cfdcff}
+.modalWrap{position:fixed;inset:0;background:rgba(15,23,42,.44);display:none;align-items:center;justify-content:center;padding:22px;z-index:50}
+.modalWrap.show{display:flex}
+.modal{width:min(920px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:28px;box-shadow:0 24px 60px rgba(15,23,42,.18);padding:22px}
+.modal.sm{width:min(560px,100%)}
+.modal header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.modal h3{margin:0;font-size:24px}
+.closeBtn{border:1px solid var(--line);background:#fff;border-radius:14px;padding:8px 12px}
+.notice{padding:14px 16px;border-radius:18px;background:var(--panel-2);border:1px dashed #cfdbeb;color:var(--muted);line-height:1.6}
+.timeline{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin:14px 0 0}
+.timeline .node{padding:12px;border-radius:16px;border:1px solid var(--line);background:#fff;font-size:13px;text-align:center}
+.timeline .node.done{background:var(--success-soft);border-color:#bee3cc;color:var(--success)}
+.timeline .node.current{background:var(--primary-soft);border-color:#cadbff;color:var(--primary)}
+.toast{position:fixed;left:22px;bottom:22px;background:#101828;color:#fff;padding:14px 16px;border-radius:16px;opacity:0;transform:translateY(10px);transition:.2s;z-index:60;pointer-events:none}
+.toast.show{opacity:1;transform:none}
+.top-left-home{display:inline-flex;align-items:center;gap:10px;border:1px solid var(--line);background:#fff;color:var(--text);border-radius:16px;padding:12px 16px;box-shadow:var(--shadow)}
+.top-left-home svg{width:18px;height:18px;stroke-width:1.8;fill:none;stroke:currentColor}
+.helper-text{font-size:13px;color:var(--muted);margin-top:8px}
+.task-plan{margin-top:14px;padding:14px 16px;border-radius:18px;background:#f8fbff;border:1px solid #dde7f4}
+.task-plan label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px}
+.task-plan ul{margin:0;padding:0;list-style:none;display:grid;gap:8px}
+.task-plan li{position:relative;padding-right:16px;line-height:1.55;font-size:14px}
+.task-plan li:before{content:'';position:absolute;right:0;top:9px;width:7px;height:7px;border-radius:999px;background:var(--primary)}
+.task-compact{display:grid;gap:8px;margin-top:12px}
+.task-compact .line{padding:10px 12px;border-radius:14px;background:var(--panel-2);font-size:14px;line-height:1.5}
+.inline-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.switch{display:flex;gap:12px;align-items:center}
+.switch input{width:auto}
+.empty{padding:28px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:22px;background:var(--panel-2)}
+@media (max-width:1100px){.grid-4,.grid-3,.employee-grid,.entry-actions,.list-grid,.grid-2,.timeline,.form-grid{grid-template-columns:1fr 1fr}.app-shell{grid-template-columns:1fr}.sidebar{display:none}}
+@media (max-width:760px){.grid-4,.grid-3,.employee-grid,.entry-actions,.list-grid,.grid-2,.timeline,.form-grid{grid-template-columns:1fr}.main{padding:16px}.entry-card{padding:26px}.entry-title{font-size:32px}.topbar{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<div id="entryScreen" class="entry-screen">
+  <div class="entry-header">
+    <button class="top-left-home" id="goHomeFromEntry" type="button">
+      <span>גלש לדף הבית</span>
+      <svg viewBox="0 0 24 24"><path d="M4 12l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>
+    </button>
+  </div>
+  <div class="entry-stage">
+    <div class="entry-card">
+      <h1 class="entry-title">מערכת הזמנות ובדיקות זמינות</h1>
+      <p class="entry-sub">פתיחה מהירה, עבודה פשוטה וברורה, עם תהליך מלא מבדיקת זמינות ועד איסוף מהחנות או משלוח לבית הלקוחה.</p>
+      <div class="entry-actions">
+        <button class="big-choice" id="entryNewOrder" type="button">
+          <div class="iconWrap"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg></div>
+          <div>
+            <h3>הזמנה חדשה</h3>
+            <p>נפתחת רק אחרי שבדקו ויש את המוצר במלאי אצל הספק.</p>
+          </div>
+        </button>
+        <button class="big-choice" id="entryCheckOrder" type="button">
+          <div class="iconWrap"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.35-4.35"/></svg></div>
+          <div>
+            <h3>בדיקת הזמנה</h3>
+            <p>בדיקת סטטוס, חיפוש לקוחה, או פתיחת בדיקת זמינות חדשה מול ספק.</p>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="employeeScreen" class="employee-screen hidden">
+  <div class="entry-header">
+    <button class="top-left-home" id="backToEntry" type="button">
+      <span>חזור</span>
+      <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
+    </button>
+  </div>
+  <div class="employee-top">
+    <h1>בחירת עובדת</h1>
+    <p>בחרי מי משתמשת במערכת כרגע. הבחירה תשויך אוטומטית לפתיחות ולעדכונים.</p>
+  </div>
+  <div class="employee-grid" id="employeeGrid"></div>
+</div>
+
+<div id="appShell" class="app-shell hidden">
+  <aside class="sidebar">
+    <div class="brand">
+      <h1>ניהול הזמנות</h1>
+      <p>בדיקות זמינות, הזמנות מספק, הגעה לחנות, איסוף ומשלוחים.</p>
+    </div>
+    <div class="active-employee" id="activeEmployeeBox">עובדת פעילה: —</div>
+    <nav class="nav" id="navButtons"></nav>
+    <div class="footer-actions">
+      <button id="openTutorial" type="button">מדריך קצר</button>
+      <button id="loadSamplesBtn" type="button">טעינת נתוני דוגמה</button>
+      <button id="exportJsonBtn" type="button">ייצוא נתונים</button>
+      <button id="importJsonBtn" type="button">ייבוא נתונים</button>
+      <input id="importJsonInput" type="file" accept="application/json" class="hidden" />
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h2 id="sectionTitle">דף הבית</h2>
+        <p id="sectionSubtitle">תמונה יומית של הבקשות, ההזמנות והמשימות.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn soft" id="headerAvailabilityBtn" type="button"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 10-8 8"/><path d="M20 12v6h-6"/></svg><span>בדיקת זמינות חדשה</span></button>
+        <button class="btn primary" id="headerOrderBtn" type="button"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg><span>הזמנה חדשה</span></button>
+      </div>
+    </div>
+
+    <section class="section active" id="section-home"></section>
+    <section class="section" id="section-tasks"></section>
+    <section class="section" id="section-status"></section>
+    <section class="section" id="section-availability"></section>
+    <section class="section" id="section-orders"></section>
+    <section class="section" id="section-arrived"></section>
+    <section class="section" id="section-deliveries"></section>
+    <section class="section" id="section-search"></section>
+    <section class="section" id="section-customers"></section>
+    <section class="section" id="section-suppliers"></section>
+    <section class="section" id="section-employees"></section>
+    <section class="section" id="section-reports"></section>
+  </main>
+</div>
+
+<div class="modalWrap" id="availabilityModalWrap">
+  <div class="modal">
+    <header><h3>בדיקת זמינות חדשה</h3><button class="closeBtn" data-close="availabilityModalWrap" type="button">סגור</button></header>
+    <div class="notice">בדיקת זמינות נפתחת כאשר הלקוחה מבקשת לבדוק אם מוצר מסוים קיים אצל הספק. רק אם יש מלאי ומתקבלת החלטה להמשיך, הופכים אותה להזמנה חדשה.</div>
+    <form id="availabilityForm">
+      <div class="form-grid" style="margin-top:16px">
+        <div class="field"><label>שם לקוחה *</label><input name="customerName" required /></div>
+        <div class="field"><label>טלפון ראשי *</label><input name="phone" required /></div>
+        <div class="field"><label>טלפון נוסף</label><input name="phone2" /></div>
+        <div class="field"><label>מייל</label><input name="email" /></div>
+        <div class="field"><label>קטגוריה</label><select name="category"><option>מצעים</option><option>מגבות</option><option>מפות</option><option>כריות</option><option>שמיכות</option><option>אחר</option></select></div>
+        <div class="field"><label>שם המוצר *</label><input name="productName" required /></div>
+        <div class="field"><label>דגם</label><input name="model" /></div>
+        <div class="field"><label>מידה</label><input name="size" placeholder="למשל 110 ס״מ"/></div>
+        <div class="field"><label>צבע</label><input name="color" /></div>
+        <div class="field"><label>כמות</label><input name="qty" type="number" min="1" value="1" /></div>
+        <div class="field"><label>ספק משוער</label><select name="supplierId" id="availabilitySupplierSelect"></select></div>
+        <div class="field"><label>מועד בדיקה רצוי</label><input name="followUpDate" type="date" /></div>
+      </div>
+      <div class="field" style="margin-top:14px"><label>הערות</label><textarea name="notes"></textarea></div>
+      <div class="form-actions"><button class="btn primary" type="submit">שמור בדיקת זמינות</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modalWrap" id="orderModalWrap">
+  <div class="modal">
+    <header><h3 id="orderModalTitle">הזמנה חדשה</h3><button class="closeBtn" data-close="orderModalWrap" type="button">סגור</button></header>
+    <div class="notice">הזמנה חדשה נפתחת רק אחרי שבדקו ויש מלאי אצל הספק. פרטי משלוח לא מוצגים כאן כברירת מחדל. אם צריך, לוחצים על כפתור "משלוח" וממלאים שם פרטים.</div>
+    <form id="orderForm">
+      <input type="hidden" name="editId" />
+      <input type="hidden" name="fromAvailabilityId" />
+      <div class="steps">
+        <span class="step-pill active">1. פרטי לקוחה</span>
+        <span class="step-pill active">2. פרטי מוצר</span>
+        <span class="step-pill active">3. ספק ותשלום</span>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label>שם לקוחה *</label><input name="customerName" required /></div>
+        <div class="field"><label>טלפון ראשי *</label><input name="phone" required /></div>
+        <div class="field"><label>טלפון נוסף</label><input name="phone2" /></div>
+        <div class="field"><label>כתובת</label><input name="address" /></div>
+        <div class="field"><label>מייל</label><input name="email" /></div>
+        <div class="field"><label>קטגוריה</label><select name="category"><option>מצעים</option><option>מגבות</option><option>מפות</option><option>כריות</option><option>שמיכות</option><option>אחר</option></select></div>
+        <div class="field"><label>שם המוצר *</label><input name="productName" required /></div>
+        <div class="field"><label>דגם</label><input name="model" /></div>
+        <div class="field"><label>מידה</label><input name="size" /></div>
+        <div class="field"><label>צבע</label><input name="color" /></div>
+        <div class="field"><label>כמות</label><input name="qty" type="number" min="1" value="1" /></div>
+        <div class="field"><label>ספק *</label><select name="supplierId" id="orderSupplierSelect" required></select></div>
+        <div class="field"><label>סטטוס תשלום</label><select name="paymentStatus"><option value="ללא תשלום">ללא תשלום</option><option value="ממתין לתשלום">ממתין לתשלום</option><option value="שולם חלקית">שולם חלקית</option><option value="שולם מלא">שולם מלא</option></select></div>
+        <div class="field"><label>סכום ששולם</label><input name="paidAmount" type="number" min="0" step="0.01" value="0" /></div>
+        <div class="field"><label>יתרה</label><input name="balanceAmount" type="number" min="0" step="0.01" value="0" /></div>
+        <div class="field"><label>אמצעי תשלום</label><input name="paymentMethod" /></div>
+      </div>
+      <div class="inline-row" style="margin-top:16px">
+        <button class="btn soft" id="orderShippingBtn" type="button"><svg viewBox="0 0 24 24"><path d="M3 7h13v10H3z"/><path d="M16 10h3l2 3v4h-5"/><circle cx="7" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg><span>משלוח</span></button>
+        <span class="helper-text" id="shippingSummary">לא הוגדרו פרטי משלוח.</span>
+      </div>
+      <div class="field" style="margin-top:14px"><label>הערות</label><textarea name="notes"></textarea></div>
+      <div class="form-actions"><button class="btn primary" type="submit">שמור הזמנה</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modalWrap" id="shippingModalWrap">
+  <div class="modal sm">
+    <header><h3>פרטי משלוח</h3><button class="closeBtn" data-close="shippingModalWrap" type="button">סגור</button></header>
+    <form id="shippingForm">
+      <div class="switch" style="margin-bottom:14px"><input type="checkbox" id="shippingRequested" /><label for="shippingRequested">הלקוחה ביקשה משלוח</label></div>
+      <div class="form-grid">
+        <div class="field"><label>שם מקבלת</label><input name="recipientName" /></div>
+        <div class="field"><label>טלפון מקבלת</label><input name="recipientPhone" /></div>
+        <div class="field"><label>עיר</label><input name="city" /></div>
+        <div class="field"><label>רחוב ומספר</label><input name="street" /></div>
+        <div class="field"><label>האם המשלוח בתשלום</label><select name="chargeType"><option value="לא רלוונטי">לא רלוונטי</option><option value="בתשלום">בתשלום</option><option value="חינם">חינם</option></select></div>
+        <div class="field"><label>סכום משלוח</label><input name="shippingPrice" type="number" min="0" step="0.01" value="0" /></div>
+        <div class="field"><label>האם דמי המשלוח שולמו</label><select name="shippingPaid"><option value="לא">לא</option><option value="כן">כן</option></select></div>
+        <div class="field"><label>סיבת זכאות לחינם</label><input name="freeReason" /></div>
+      </div>
+      <div class="field" style="margin-top:14px"><label>הערות לשליח</label><textarea name="deliveryNotes"></textarea></div>
+      <div class="form-actions"><button class="btn primary" type="submit">שמור פרטי משלוח</button></div>
+    </form>
+  </div>
+</div>
+
+
+<div class="modalWrap" id="paymentModalWrap">
+  <div class="modal sm">
+    <header><h3>עדכון תשלום</h3><button class="closeBtn" data-close="paymentModalWrap" type="button">סגור</button></header>
+    <div class="notice">כאן מעדכנים תשלום מתוך מסך ההזמנות שהגיעו או מתוך כרטיס ההזמנה. כל עוד התשלום אינו מלא, לא ניתן למסור את ההזמנה ללקוחה.</div>
+    <form id="paymentForm" style="margin-top:16px">
+      <div class="form-grid">
+        <div class="field"><label>סטטוס תשלום</label><select name="paymentStatus"><option value="ללא תשלום">ללא תשלום</option><option value="ממתין לתשלום">ממתין לתשלום</option><option value="שולם חלקית">שולם חלקית</option><option value="שולם מלא">שולם מלא</option></select></div>
+        <div class="field"><label>סכום ששולם</label><input name="paidAmount" type="number" min="0" step="0.01" value="0" /></div>
+        <div class="field"><label>יתרה</label><input name="balanceAmount" type="number" min="0" step="0.01" value="0" /></div>
+        <div class="field"><label>אמצעי תשלום</label><input name="paymentMethod" /></div>
+      </div>
+      <div class="field" style="margin-top:14px"><label>הערת תשלום</label><textarea name="paymentNote" placeholder="למשל: נגבתה יתרה במזומן בעת איסוף"></textarea></div>
+      <div class="form-actions"><button class="btn primary" type="submit">שמור תשלום</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modalWrap" id="supplierModalWrap">
+  <div class="modal sm">
+    <header><h3 id="supplierModalTitle">הוספת ספק חדש</h3><button class="closeBtn" data-close="supplierModalWrap" type="button">סגור</button></header>
+    <div class="notice" id="supplierModalNotice">הספק שתוסיף כאן יהיה זמין מיד לבחירה במסכי בדיקת הזמינות וההזמנה החדשה.</div>
+    <form id="supplierForm" style="margin-top:16px">
+      <input type="hidden" name="supplierId" />
+      <div class="form-grid">
+        <div class="field"><label>שם ספק *</label><input name="name" required /></div>
+        <div class="field"><label>איש קשר</label><input name="contact" /></div>
+        <div class="field"><label>טלפון</label><input name="phone" /></div>
+        <div class="field"><label>וואטסאפ</label><input name="whatsapp" /></div>
+        <div class="field"><label>מייל</label><input name="email" /></div>
+        <div class="field"><label>זמן אספקה משוער (ימים)</label><input name="leadDays" type="number" min="0" value="2" /></div>
+      </div>
+      <div class="field" style="margin-top:14px"><label>הערות</label><textarea name="notes"></textarea></div>
+      <div class="form-actions"><button class="btn primary" id="supplierSubmitBtn" type="submit">שמור ספק</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modalWrap" id="employeeModalWrap">
+  <div class="modal sm">
+    <header><h3 id="employeeModalTitle">הוספת עובדת חדשה</h3><button class="closeBtn" data-close="employeeModalWrap" type="button">סגור</button></header>
+    <div class="notice" id="employeeModalNotice">העובדת שתוסיף כאן תהיה זמינה מיד לבחירה במסך הכניסה ובאפשרות החלפת העובדת הפעילה.</div>
+    <form id="employeeForm" style="margin-top:16px">
+      <input type="hidden" name="employeeId" />
+      <div class="form-grid">
+        <div class="field"><label>שם עובדת *</label><input name="name" required /></div>
+        <div class="field"><label>תפקיד / הערה קצרה</label><input name="notes" placeholder="למשל: משמרת בוקר" /></div>
+      </div>
+      <div class="field" style="margin-top:14px"><label>סטטוס</label><select name="active"><option value="כן">פעילה</option><option value="לא">לא פעילה</option></select></div>
+      <div class="form-actions"><button class="btn primary" id="employeeSubmitBtn" type="submit">שמור עובדת</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modalWrap" id="switchEmployeeModalWrap">
+  <div class="modal sm">
+    <header><h3>החלפת עובדת פעילה</h3><button class="closeBtn" data-close="switchEmployeeModalWrap" type="button">סגור</button></header>
+    <div class="notice">בחרי מי ממשיכה את המשמרת כרגע. המערכת תתעדכן מיד בלי לצאת ולהיכנס שוב.</div>
+    <div id="switchEmployeeGrid" class="employee-grid" style="grid-template-columns:repeat(2,1fr);margin-top:16px"></div>
+  </div>
+</div>
+
+<div class="modalWrap" id="recordModalWrap">
+  <div class="modal">
+    <header><h3>כרטיס מלא</h3><button class="closeBtn" data-close="recordModalWrap" type="button">סגור</button></header>
+    <div id="recordModalContent"></div>
+  </div>
+</div>
+
+<div class="modalWrap" id="tutorialModalWrap">
+  <div class="modal sm">
+    <header><h3>איך עובדים במערכת</h3><button class="closeBtn" data-close="tutorialModalWrap" type="button">סגור</button></header>
+    <div class="notice">
+      <div>1. בדיקת זמינות נפתחת כשצריך לבדוק מול ספק אם יש מלאי.</div>
+      <div>2. הזמנה חדשה נפתחת רק אחרי שיש אישור שיש מלאי.</div>
+      <div>3. כשהמוצר מגיע לחנות מעדכנים לקוחה.</div>
+      <div>4. משם סוגרים באיסוף מהחנות או מזינים משלוח מלא.</div>
+    </div>
+    <div class="form-actions"><button class="btn primary" data-close="tutorialModalWrap" type="button">הבנתי</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'ordersSystemStableBranchV11';
+const ui = {
+  currentSection: 'home',
+  currentEmployee: '',
+  entryAction: '',
+  currentShippingDraft: null,
+  shippingTargetOrderId: '',
+  paymentTargetOrderId: '',
+  tutorialOnStart: true
+};
+const sectionMeta = {
+  home:['דף הבית','תמונה יומית של הבקשות, ההזמנות והמשימות.'],
+  tasks:['מה צריך לעשות עכשיו','רשימת פעולות מיידיות בלי לחפש.'],
+  status:['סטטוס יומי','כמה הוזמן, כמה אמור להגיע, מה הגיע ומה עדיין לא.'],
+  availability:['בדיקות זמינות','מעקב אחר בדיקות מול ספק לפני פתיחת הזמנה.'],
+  orders:['הזמנות פתוחות','כל ההזמנות שעדיין פעילות במערכת.'],
+  arrived:['הזמנות שהגיעו','כל מה שכבר הגיע לחנות וממתין לעדכון לקוחה, איסוף או משלוח.'],
+  deliveries:['משלוחים','ניהול פרטי משלוח ומסירה לבית הלקוחה.'],
+  search:['חיפוש','איתור מהיר לפי שם, טלפון, מוצר או מספר.'],
+  customers:['לקוחות','כרטיסי לקוחות והיסטוריה.'],
+  suppliers:['ספקים','כרטיסי ספקים, הוספה ועריכה.'],
+  employees:['עובדות','ניהול עובדות פעילות, הוספה ועריכה.'],
+  reports:['דוחות','סיכומים וייצוא לפי סטטוסים, עובדים וספקים.']
+};
+const navItems = [
+  ['home','דף הבית','home'],['tasks','מה צריך לעשות עכשיו','tasks'],['status','סטטוס יומי','status'],['availability','בדיקות זמינות','search'],['orders','הזמנות פתוחות','list'],['arrived','הזמנות שהגיעו','box'],['deliveries','משלוחים','truck'],['search','חיפוש','magnify'],['customers','לקוחות','users'],['suppliers','ספקים','building'],['employees','עובדות','users'],['reports','דוחות','chart']
+];
+let state = loadState();
+
+function defaultEmployees(){
+  return [
+    {id:'emp1',name:'רחל',notes:'',active:true},
+    {id:'emp2',name:'חיה',notes:'',active:true},
+    {id:'emp3',name:'שרה',notes:'',active:true},
+    {id:'emp4',name:'אסתי',notes:'',active:true},
+    {id:'emp5',name:'נעמי',notes:'',active:true},
+    {id:'emp6',name:'מיכל',notes:'',active:true},
+    {id:'emp7',name:'שירה',notes:'',active:true},
+    {id:'emp8',name:'אביגיל',notes:'',active:true}
+  ];
+}
+function getEmployees(includeInactive=false){
+  const list = (state.employees || []).slice();
+  return includeInactive ? list : list.filter(e=>e.active!==false);
+}
+function employeeNameExists(name, excludeId=''){
+  return getEmployees(true).some(e => e.name===name && e.id!==excludeId);
+}
+
+function icons(name){
+  const map = {
+    home:'<svg viewBox="0 0 24 24"><path d="M4 12l8-7 8 7"/><path d="M6 10v9h12v-9"/></svg>',
+    tasks:'<svg viewBox="0 0 24 24"><path d="M8 7h10"/><path d="M8 12h10"/><path d="M8 17h10"/><path d="M4 7h.01"/><path d="M4 12h.01"/><path d="M4 17h.01"/></svg>',
+    status:'<svg viewBox="0 0 24 24"><path d="M4 19h16"/><path d="M7 16V9"/><path d="M12 16V5"/><path d="M17 16v-4"/></svg>',
+    search:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.35-4.35"/></svg>',
+    list:'<svg viewBox="0 0 24 24"><path d="M8 7h12"/><path d="M8 12h12"/><path d="M8 17h12"/><path d="M4 7h.01"/><path d="M4 12h.01"/><path d="M4 17h.01"/></svg>',
+    box:'<svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>',
+    truck:'<svg viewBox="0 0 24 24"><path d="M3 7h12v8H3z"/><path d="M15 10h3l3 3v2h-6"/><circle cx="7" cy="18" r="1.5"/><circle cx="18" cy="18" r="1.5"/></svg>',
+    magnify:'<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.35-4.35"/></svg>',
+    users:'<svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2"/><circle cx="9.5" cy="7" r="4"/><path d="M20 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+    building:'<svg viewBox="0 0 24 24"><path d="M4 21V5l8-2 8 2v16"/><path d="M9 9h.01"/><path d="M9 13h.01"/><path d="M9 17h.01"/><path d="M15 9h.01"/><path d="M15 13h.01"/><path d="M15 17h.01"/></svg>',
+    chart:'<svg viewBox="0 0 24 24"><path d="M4 19h16"/><path d="M7 16V9"/><path d="M12 16V5"/><path d="M17 16v-4"/></svg>',
+    plus:'<svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg>'
+  };
+  return map[name] || map.home;
+}
+
+function normalizeState(data){
+  const base = {availabilityChecks:[],orders:[],customers:[],suppliers:defaultSuppliers(),employees:defaultEmployees(),lastId:1000};
+  const merged = Object.assign({}, base, data || {});
+  if(!Array.isArray(merged.suppliers) || !merged.suppliers.length) merged.suppliers = defaultSuppliers();
+  if(!Array.isArray(merged.employees) || !merged.employees.length){
+    merged.employees = defaultEmployees();
+  }else{
+    merged.employees = merged.employees.map((e,i)=> typeof e === 'string' ? {id:'emp_imp_'+i,name:e,notes:'',active:true} : {id:e.id || ('emp_imp_'+i),name:e.name || '',notes:e.notes || '',active:e.active!==false}).filter(e=>e.name);
+  }
+  return merged;
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return normalizeState(JSON.parse(raw));
+  }catch(e){}
+  return normalizeState();
+}
+function saveState(){ state = normalizeState(state); localStorage.setItem(STORAGE_KEY, JSON.stringify(state));}
+function defaultSuppliers(){
+  return [
+    {id:'sup1',name:'טקסטיל השחר',contact:'אלי כהן',phone:'03-9001122',leadDays:2},
+    {id:'sup2',name:'בית המגבת',contact:'יוסי לוי',phone:'03-7654432',leadDays:3},
+    {id:'sup3',name:'פנינת המצעים',contact:'שמעון אברהם',phone:'02-5548812',leadDays:4},
+    {id:'sup4',name:'קו הבית',contact:'רחלי דוד',phone:'050-7663321',leadDays:1},
+    {id:'sup5',name:'סימפוני',contact:'מוטי',phone:'03-7788455',leadDays:2}
+  ];
+}
+function nextId(prefix='R'){ state.lastId += 1; return prefix + state.lastId; }
+function fmtDate(value){ if(!value) return '—'; const d = new Date(value); if(isNaN(d)) return value; return d.toLocaleDateString('he-IL') + ' ' + d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});} 
+function fmtShortDate(value){ if(!value) return '—'; const d = new Date(value); if(isNaN(d)) return value; return d.toLocaleDateString('he-IL'); }
+function todayDate(){ return new Date().toISOString().slice(0,10); }
+function supplierName(id){ return state.suppliers.find(s=>s.id===id)?.name || '—'; }
+function showToast(text){ const el=document.getElementById('toast'); el.textContent=text; el.classList.add('show'); clearTimeout(showToast.t); showToast.t=setTimeout(()=>el.classList.remove('show'),2200); }
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+function statusChip(text){
+  const t = text || '';
+  let cls = 'primary';
+  if(/מלא|נמסר|נאסף|הגיע/.test(t)) cls='success';
+  else if(/ממתין|בדיקה|בדרך|תשובה/.test(t)) cls='warning';
+  else if(/לא קיים|בוטל|איחור|דחוף/.test(t)) cls='danger';
+  else if(/משלוח|עודכנה/.test(t)) cls='info';
+  return `<span class="chip ${cls}">${text}</span>`;
+}
+function renderNav(){
+  const nav = document.getElementById('navButtons');
+  nav.innerHTML = navItems.map(([key,label,icon]) => `<button type="button" data-section="${key}" class="${ui.currentSection===key?'active':''}">${icons(icon)}<span>${label}</span></button>`).join('');
+  nav.querySelectorAll('button').forEach(btn=>btn.addEventListener('click',()=>showSection(btn.dataset.section)));
+}
+function showSection(key){
+  ui.currentSection = key;
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('section-'+key).classList.add('active');
+  const [title,sub] = sectionMeta[key];
+  document.getElementById('sectionTitle').textContent = title;
+  document.getElementById('sectionSubtitle').textContent = sub;
+  updateHeaderActionsVisibility();
+  renderNav();
+  renderSections();
+}
+function updateHeaderActionsVisibility(){
+  const wrap = document.querySelector('.header-actions');
+  if(!wrap) return;
+  wrap.style.display = ['suppliers','employees'].includes(ui.currentSection) ? 'none' : 'flex';
+}
+function renderEmployees(){
+  const box = document.getElementById('employeeGrid');
+  const list = getEmployees();
+  if(!list.length){
+    box.innerHTML = '<div class="empty" style="grid-column:1/-1">אין כרגע עובדות פעילות לבחירה. יש להוסיף או להפעיל עובדת במסך העובדות.</div>';
+    return;
+  }
+  box.innerHTML = list.map(emp => `<button class="employee-card" type="button" data-name="${emp.name}"><div class="employee-avatar">${emp.name[0] || 'ע'}</div><h3>${emp.name}</h3><p>כניסה לעבודה עם המשתמש הזה</p></button>`).join('');
+  box.querySelectorAll('.employee-card').forEach(btn=>btn.addEventListener('click',()=>selectEmployee(btn.dataset.name)));
+}
+function selectEmployee(name){ ui.currentEmployee = name; ui.entryAction = ''; document.getElementById('activeEmployeeBox').textContent = 'עובדת פעילה: ' + name; enterApp(); }
+function enterApp(){ document.getElementById('entryScreen').classList.add('hidden'); document.getElementById('employeeScreen').classList.add('hidden'); document.getElementById('appShell').classList.remove('hidden'); updateActiveEmployeeUI(); renderApp(); showSection('home'); if(ui.tutorialOnStart) openModal('tutorialModalWrap'); }
+function toEmployeeSelection(action){ ui.entryAction = action; document.getElementById('entryScreen').classList.add('hidden'); document.getElementById('employeeScreen').classList.remove('hidden'); }
+function backToEntry(){ document.getElementById('employeeScreen').classList.add('hidden'); document.getElementById('entryScreen').classList.remove('hidden'); }
+function goHomeFromEntry(){ document.getElementById('entryScreen').classList.add('hidden'); if(!ui.currentEmployee){ document.getElementById('employeeScreen').classList.remove('hidden'); } else { ui.entryAction = ''; enterApp(); } }
+function renderApp(){ renderNav(); populateSupplierSelects(); renderSections(); updateHeaderActionsVisibility(); }
+function populateSupplierSelects(){
+  const options = ['<option value="">בחר ספק</option>'].concat(state.suppliers.map(s=>`<option value="${s.id}">${s.name}</option>`)).join('');
+  document.getElementById('availabilitySupplierSelect').innerHTML = options;
+  document.getElementById('orderSupplierSelect').innerHTML = options;
+}
+
+function openSupplierModal(id=''){
+  const form = document.getElementById('supplierForm');
+  form.reset();
+  form.supplierId.value = '';
+  document.getElementById('supplierModalTitle').textContent = id ? 'עריכת ספק' : 'הוספת ספק חדש';
+  document.getElementById('supplierModalNotice').textContent = id ? 'עדכון פרטי הספק יתעדכן מיד בכל המערכת ובכל מקום שבו בוחרים ספק.' : 'הספק שתוסיף כאן יהיה זמין מיד לבחירה במסכי בדיקת הזמינות וההזמנה החדשה.';
+  document.getElementById('supplierSubmitBtn').textContent = id ? 'שמור שינויים' : 'שמור ספק';
+  if(id){
+    const rec = state.suppliers.find(s=>s.id===id);
+    if(!rec) return;
+    form.supplierId.value = rec.id;
+    form.name.value = rec.name || '';
+    form.contact.value = rec.contact || '';
+    form.phone.value = rec.phone || '';
+    form.whatsapp.value = rec.whatsapp || '';
+    form.email.value = rec.email || '';
+    form.leadDays.value = rec.leadDays ?? 2;
+    form.notes.value = rec.notes || '';
+  }
+  openModal('supplierModalWrap');
+}
+function openEmployeeModal(id=''){
+  const form = document.getElementById('employeeForm');
+  form.reset();
+  form.employeeId.value = '';
+  document.getElementById('employeeModalTitle').textContent = id ? 'עריכת עובדת' : 'הוספת עובדת חדשה';
+  document.getElementById('employeeModalNotice').textContent = id ? 'עדכון שם העובדת או הסטטוס יעודכן מיד במסך הכניסה, בדף הבית ובכל המערכת.' : 'העובדת שתוסיף כאן תהיה זמינה מיד לבחירה במסך הכניסה ובאפשרות החלפת העובדת הפעילה.';
+  document.getElementById('employeeSubmitBtn').textContent = id ? 'שמור שינויים' : 'שמור עובדת';
+  if(id){
+    const rec = getEmployees(true).find(e=>e.id===id);
+    if(!rec) return;
+    form.employeeId.value = rec.id;
+    form.name.value = rec.name || '';
+    form.notes.value = rec.notes || '';
+    form.active.value = rec.active===false ? 'לא' : 'כן';
+  }else{
+    form.active.value = 'כן';
+  }
+  openModal('employeeModalWrap');
+}
+
+function updateActiveEmployeeUI(){
+  const text = 'עובדת פעילה: ' + (ui.currentEmployee || '—');
+  const box = document.getElementById('activeEmployeeBox');
+  if(box) box.textContent = text;
+}
+function renderSwitchEmployeeGrid(){
+  const box = document.getElementById('switchEmployeeGrid');
+  if(!box) return;
+  const list = getEmployees();
+  if(!list.length){
+    box.innerHTML = '<div class="empty" style="grid-column:1/-1">אין כרגע עובדות פעילות לבחירה. יש להוסיף או להפעיל עובדת במסך העובדות.</div>';
+    return;
+  }
+  box.innerHTML = list.map(emp => `<button class="employee-card" type="button" data-name="${emp.name}"><div class="employee-avatar">${emp.name[0] || 'ע'}</div><h3>${emp.name}</h3><p>${ui.currentEmployee===emp.name ? 'העובדת הפעילה כרגע' : 'לחצי כדי לעבוד על שם העובדת הזו'}</p></button>`).join('');
+  box.querySelectorAll('.employee-card').forEach(btn=>btn.addEventListener('click', ()=>{
+    closeModal('switchEmployeeModalWrap');
+    ui.currentEmployee = btn.dataset.name;
+    updateActiveEmployeeUI();
+    saveState();
+    renderApp();
+    showSection('home');
+    showToast('העובדת הפעילה הוחלפה');
+  }));
+}
+
+function openSwitchEmployeeModal(){
+  renderSwitchEmployeeGrid();
+  openModal('switchEmployeeModalWrap');
+}
+function ensureCustomer(customer){
+  const key = (customer.phone||'') + '|' + (customer.customerName||'');
+  const existing = state.customers.find(c => (c.phone+'|'+c.customerName)===key);
+  if(existing){ Object.assign(existing, customer, {updatedAt:new Date().toISOString()}); return existing.id; }
+  const id = nextId('C');
+  state.customers.push({...customer,id,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+  return id;
+}
+function addHistory(record, action, notes=''){
+  record.history = record.history || [];
+  record.history.unshift({at:new Date().toISOString(),by:ui.currentEmployee||'—',action,notes});
+}
+function openAvailabilityModal(prefill={}){
+  document.getElementById('availabilityForm').reset();
+  document.getElementById('availabilityForm').followUpDate.value = todayDate();
+  Object.entries(prefill).forEach(([k,v])=>{ const field=document.getElementById('availabilityForm')[k]; if(field) field.value=v; });
+  openModal('availabilityModalWrap');
+}
+function openOrderModal(prefill={}){
+  document.getElementById('orderForm').reset();
+  document.querySelector('#orderForm [name="editId"]').value = prefill.id || '';
+  document.querySelector('#orderForm [name="fromAvailabilityId"]').value = prefill.fromAvailabilityId || '';
+  ui.currentShippingDraft = prefill.shipping || null;
+  updateShippingSummary();
+  document.getElementById('orderModalTitle').textContent = prefill.id ? 'עריכת הזמנה' : 'הזמנה חדשה';
+  const form = document.getElementById('orderForm');
+  ['customerName','phone','phone2','address','email','category','productName','model','size','color','qty','supplierId','paymentStatus','paidAmount','balanceAmount','paymentMethod','notes'].forEach(k=>{
+    if(form[k] && prefill[k] != null) form[k].value = prefill[k];
+  });
+  openModal('orderModalWrap');
+}
+function updateShippingSummary(){
+  const el = document.getElementById('shippingSummary');
+  const s = ui.currentShippingDraft;
+  if(!s || !s.requested){ el.textContent = 'לא הוגדרו פרטי משלוח.'; return; }
+  el.textContent = `משלוח מוגדר: ${s.city || 'ללא עיר'}${s.street ? ' , ' + s.street : ''} | ${s.chargeType || 'לא רלוונטי'}${s.shippingPaid ? ' | שולם: ' + s.shippingPaid : ''}`;
+}
+
+function fmtCurrency(value){
+  const num = Number(value || 0);
+  return '₪' + num.toLocaleString('he-IL', {maximumFractionDigits:2});
+}
+function isPaymentComplete(record){
+  if(!record) return false;
+  const balance = Number(record.balanceAmount || 0);
+  return record.paymentStatus === 'שולם מלא' || balance <= 0;
+}
+function canReleaseOrder(record){
+  return isPaymentComplete(record) || record.allowReleaseWithoutFullPayment === true;
+}
+function paymentSummary(record){
+  return `${fmtCurrency(record.paidAmount || 0)} שולם • ${fmtCurrency(record.balanceAmount || 0)} יתרה`;
+}
+function openPaymentModalForOrder(id){
+  const r = state.orders.find(x=>x.id===id);
+  if(!r) return;
+  ui.paymentTargetOrderId = id;
+  const form = document.getElementById('paymentForm');
+  form.reset();
+  form.paymentStatus.value = r.paymentStatus || 'ללא תשלום';
+  form.paidAmount.value = Number(r.paidAmount || 0);
+  form.balanceAmount.value = Number(r.balanceAmount || 0);
+  form.paymentMethod.value = r.paymentMethod || '';
+  form.paymentNote.value = '';
+  openModal('paymentModalWrap');
+}
+function openShippingModal(existing){
+  const form = document.getElementById('shippingForm'); form.reset();
+  const data = existing || ui.currentShippingDraft || {};
+  document.getElementById('shippingRequested').checked = !!data.requested;
+  ['recipientName','recipientPhone','city','street','chargeType','shippingPrice','shippingPaid','freeReason','deliveryNotes'].forEach(k=>{ if(form[k] && data[k] != null) form[k].value = data[k]; });
+  openModal('shippingModalWrap');
+}
+function productSummary(record){
+  return [record.productName, record.model, record.color, record.size].filter(Boolean).join(', ');
+}
+function taskActionInfo(type, record){
+  const supplier = supplierName(record.supplierId);
+  const summary = productSummary(record);
+  if(type==='availability'){
+    if(record.status==='קיים אצל הספק'){
+      return {
+        label:'מה עושים עכשיו',
+        lines:[
+          `להתקשר ללקוחה: ${record.customerName}`,
+          `לעדכן שיש מלאי אצל ${supplier !== '—' ? supplier : 'הספק'}`,
+          `להמשיך להזמנה עבור ${summary || record.productName}`
+        ],
+        buttons:[
+          `<button class="primary" type="button" onclick="convertAvailabilityToOrder('${record.id}')">פתח הזמנה חדשה</button>`,
+          `<button type="button" onclick="updateAvailabilityStatus('${record.id}','בוטל','הלקוחה לא מעוניינת')">לא מעוניינת</button>`,
+          `<button type="button" onclick="openRecordById('availability','${record.id}')">פתח כרטיס</button>`
+        ]
+      };
+    }
+    return {
+      label:'מה עושים עכשיו',
+      lines:[
+        supplier !== '—' ? `להתקשר לספק: ${supplier}` : 'לבחור ספק ולבדוק מולו',
+        `לבדוק ${summary || record.productName}`,
+        record.qty ? `כמות מבוקשת: ${record.qty}` : ''
+      ].filter(Boolean),
+      buttons:[
+        `<button class="primary" type="button" onclick="updateAvailabilityStatus('${record.id}','קיים אצל הספק','להתקשר ללקוחה ולעדכן שיש מלאי')">יש במלאי</button>`,
+        `<button type="button" onclick="updateAvailabilityStatus('${record.id}','לא קיים אצל הספק','לעדכן את הלקוחה שאין מלאי')">אין במלאי</button>`,
+        `<button type="button" onclick="updateAvailabilityStatus('${record.id}','ממתין לתשובת ספק','להמשיך מעקב מול הספק')">ממתין לתשובה</button>`,
+        `<button type="button" onclick="openRecordById('availability','${record.id}')">פתח כרטיס</button>`
+      ]
+    };
+  }
+  if(record.status==='נפתחה הזמנה'){
+    return {
+      label:'מה עושים עכשיו',
+      lines:[
+        supplier !== '—' ? `להזמין אצל הספק: ${supplier}` : 'לבחור ספק לפני ביצוע ההזמנה',
+        `להזמין ${summary || record.productName}`,
+        record.paymentStatus && record.paymentStatus !== 'ללא תשלום' ? `מצב תשלום: ${record.paymentStatus}` : ''
+      ].filter(Boolean),
+      buttons:[
+        `<button class="primary" type="button" onclick="updateOrderStatus('${record.id}','הוזמן מהספק','להמתין לאספקה מהספק לחנות')">הזמנה אצל הספק</button>`,
+        `<button type="button" onclick="openRecordById('order','${record.id}')">פתח כרטיס</button>`
+      ]
+    };
+  }
+  if(record.status==='הוזמן מהספק'){
+    return {
+      label:'מה עושים עכשיו',
+      lines:[
+        supplier !== '—' ? `לעקוב מול ${supplier} על האספקה` : 'לעקוב מול הספק על האספקה',
+        record.expectedArrival ? `תאריך הגעה צפוי לחנות: ${fmtShortDate(record.expectedArrival)}` : 'לעדכן תאריך הגעה צפוי',
+        `לעקוב אחרי ${summary || record.productName}`
+      ],
+      buttons:[
+        `<button class="primary" type="button" onclick="updateOrderStatus('${record.id}','בדרך לחנות','להמתין שהמוצר יגיע לחנות')">סומן בדרך לחנות</button>`,
+        `<button type="button" onclick="openRecordById('order','${record.id}')">פתח כרטיס</button>`
+      ]
+    };
+  }
+  if(record.status==='בדרך לחנות'){
+    return {
+      label:'מה עושים עכשיו',
+      lines:[
+        `לעקוב שהמוצר יגיע לחנות`,
+        supplier !== '—' ? `אם צריך, לבדוק מול ${supplier}` : 'אם צריך, לבדוק מול הספק',
+        `מדובר ב: ${summary || record.productName}`
+      ],
+      buttons:[
+        `<button class="primary" type="button" onclick="markArrived('${record.id}')">הגיע לחנות</button>`,
+        `<button type="button" onclick="openRecordById('order','${record.id}')">פתח כרטיס</button>`
+      ]
+    };
+  }
+  if(record.status==='הגיע לחנות'){
+    return {
+      label:'מה עושים עכשיו',
+      lines:[
+        `להתקשר ללקוחה: ${record.customerName}`,
+        `לעדכן שהמוצר הגיע לסניף`,
+        record.shipping?.requested ? 'לבדוק אם היא עדיין רוצה משלוח' : 'לברר אם תגיע לאיסוף או תרצה משלוח'
+      ],
+      buttons:[
+        `<button class="primary" type="button" onclick="markCustomerNotified('${record.id}')">עדכון לקוחה</button>`,
+        `<button type="button" onclick="openRecordById('order','${record.id}')">פתח כרטיס</button>`
+      ]
+    };
+  }
+  if(record.status==='הלקוחה עודכנה' || record.status==='ממתין לאיסוף'){
+    return {
+      label:'מה עושים עכשיו',
+      lines:[
+        `להשלים מסירה ללקוחה`,
+        'אם היא באה לסניף: לסמן נאסף מהחנות',
+        'אם היא מבקשת משלוח: לפתוח פרטי משלוח מלאים'
+      ],
+      buttons:[
+        `<button class="primary" type="button" onclick="markCollected('${record.id}')">נאסף מהחנות</button>`,
+        `<button type="button" onclick="openShippingForOrder('${record.id}')">מעבר למשלוח</button>`,
+        `<button type="button" onclick="openRecordById('order','${record.id}')">פתח כרטיס</button>`
+      ]
+    };
+  }
+  if(record.status==='ממתין למשלוח'){
+    return {
+      label:'מה עושים עכשיו',
+      lines:[
+        `להשלים פרטי משלוח עבור ${record.customerName}`,
+        'לתאם מסירה לבית הלקוחה',
+        record.shipping?.chargeType ? `חיוב משלוח: ${record.shipping.chargeType}` : 'לקבוע אם המשלוח בתשלום או חינם'
+      ],
+      buttons:[
+        `<button class="primary" type="button" onclick="openShippingForOrder('${record.id}')">פרטי משלוח</button>`,
+        `<button type="button" onclick="markDelivered('${record.id}')">נמסר במשלוח</button>`,
+        `<button type="button" onclick="openRecordById('order','${record.id}')">פתח כרטיס</button>`
+      ]
+    };
+  }
+  return {
+    label:'מה עושים עכשיו',
+    lines:[nextActionForOrder(record)],
+    buttons:[`<button type="button" onclick="openRecordById('order','${record.id}')">פתח כרטיס</button>`]
+  };
+}
+function getTasks(){
+  const tasks = [];
+  state.availabilityChecks.forEach(r => {
+    if(['ממתין לבדיקת ספק','ממתין לתשובת ספק','קיים אצל הספק'].includes(r.status)) tasks.push({type:'availability', id:r.id, title:r.customerName + ' • ' + r.productName, action:r.nextAction || 'לבדוק מול ספק', date:r.followUpDate || r.createdAt, status:r.status, record:r});
+  });
+  state.orders.forEach(r => {
+    if(['נפתחה הזמנה','הוזמן מהספק','בדרך לחנות','הגיע לחנות','הלקוחה עודכנה','ממתין למשלוח','ממתין לאיסוף'].includes(r.status)) tasks.push({type:'order', id:r.id, title:r.customerName + ' • ' + r.productName, action:r.nextAction || nextActionForOrder(r), date:r.expectedArrival || r.createdAt, status:r.status, record:r});
+  });
+  return tasks.sort((a,b)=> String(a.date).localeCompare(String(b.date)));
+}
+function nextActionForOrder(r){
+  if(r.status==='נפתחה הזמנה') return 'להזמין את המוצר אצל הספק';
+  if(r.status==='הוזמן מהספק') return 'לעקוב עד שהאספקה תגיע לחנות';
+  if(r.status==='בדרך לחנות') return 'לבדוק אם המוצר הגיע לחנות';
+  if(r.status==='הגיע לחנות') return 'לעדכן את הלקוחה שהמוצר הגיע';
+  if(r.status==='הלקוחה עודכנה') return r.shipping?.requested ? 'להשלים פרטי משלוח' : 'להמתין לאיסוף מהחנות';
+  if(r.status==='ממתין למשלוח') return 'לתאם משלוח';
+  if(r.status==='ממתין לאיסוף') return 'להמתין ללקוחה או להזכיר שוב';
+  return 'לבדוק';
+}
+function renderSections(){ renderHome(); renderTasks(); renderStatus(); renderAvailability(); renderOrders(); renderArrived(); renderDeliveries(); renderSearch(); renderCustomers(); renderSuppliers(); renderEmployeesSection(); renderReports(); }
+function renderHome(){
+  const tasks = getTasks();
+  const expectedToday = state.orders.filter(o=>o.expectedArrival && o.expectedArrival===todayDate()).length;
+  const arrived = state.orders.filter(o=>['הגיע לחנות','הלקוחה עודכנה','ממתין למשלוח','ממתין לאיסוף','נמסר מהחנות','נמסר במשלוח'].includes(o.status)).length;
+  const html = `
+    <div class="grid-4">
+      ${kpiCard('משימות פתוחות', tasks.length, 'דורשות טיפול')}
+      ${kpiCard('בדיקות זמינות', state.availabilityChecks.filter(x=>!['הפך להזמנה','בוטל'].includes(x.status)).length, 'לפני הזמנה')}
+      ${kpiCard('אמורות להגיע היום', expectedToday, 'מהספק לחנות')}
+      ${kpiCard('כבר הגיעו', arrived, 'בחנות / בדרך ללקוחה')}
+    </div>
+    <div class="grid-2" style="margin-top:16px">
+      <div class="panel pad">
+        <h3 style="margin-top:0">פעולה מהירה</h3>
+        <div class="grid-2">
+          <button class="big-choice" id="homeQuickAvailability" type="button">
+            <div class="iconWrap">${icons('search')}</div>
+            <div><h3 style="font-size:24px">בדיקת זמינות</h3><p>פתיחה מהירה לבדיקה מול ספק.</p></div>
+          </button>
+          <button class="big-choice" id="homeQuickOrder" type="button">
+            <div class="iconWrap">${icons('plus')}</div>
+            <div><h3 style="font-size:24px">הזמנה חדשה</h3><p>רק אחרי שאושר שיש מלאי.</p></div>
+          </button>
+        </div>
+        <div class="panel pad" style="margin-top:16px;background:var(--panel-2)">
+          <div class="record-head" style="margin-bottom:0">
+            <div>
+              <div class="record-title">עובדת פעילה כרגע</div>
+              <div class="helper-text">${ui.currentEmployee || 'לא נבחרה עובדת'}</div>
+            </div>
+            <button class="btn soft" id="switchEmployeeBtn" type="button">החלף עובדת פעילה</button>
+          </div>
+        </div>
+      </div>
+      <div class="panel pad">
+        <h3 style="margin-top:0">שרשרת העבודה במערכת</h3>
+        <div class="timeline">
+          <div class="node done">בדיקת זמינות</div>
+          <div class="node current">הזמנה חדשה</div>
+          <div class="node">הזמנה אצל הספק</div>
+          <div class="node">אספקה לחנות</div>
+          <div class="node">עדכון לקוחה</div>
+          <div class="node">איסוף / משלוח</div>
+        </div>
+      </div>
+    </div>
+    <div class="panel pad" style="margin-top:16px">
+      <h3 style="margin-top:0">מה צריך לעשות עכשיו</h3>
+      ${tasks.length ? `<div class="list-grid">${tasks.slice(0,6).map(taskCard).join('')}</div>` : '<div class="empty">אין כרגע משימות פתוחות.</div>'}
+    </div>`;
+  document.getElementById('section-home').innerHTML = html;
+  document.getElementById('homeQuickAvailability').onclick = ()=>openAvailabilityModal();
+  document.getElementById('homeQuickOrder').onclick = ()=>openOrderModal();
+  document.getElementById('switchEmployeeBtn').onclick = ()=>openSwitchEmployeeModal();
+}
+function kpiCard(label,num,badge){ return `<div class="kpi"><div class="row"><span class="badge">${badge}</span></div><div class="num">${num}</div><div class="label">${label}</div></div>`; }
+function taskCard(t){ const info = taskActionInfo(t.type, t.record); return `<div class="record-card"><div class="record-head"><div><div class="record-title">${t.title}</div><div class="helper-text">${t.type==='availability'?'בדיקת זמינות מול ספק':'הזמנה פעילה'}</div></div>${statusChip(t.status)}</div><div class="record-meta"><div class="meta"><label>תאריך יעד</label>${fmtShortDate(t.date)}</div><div class="meta"><label>ספק</label>${supplierName(t.record.supplierId)}</div></div><div class="task-plan"><label>${info.label}</label><ul>${info.lines.map(line=>`<li>${line}</li>`).join('')}</ul></div><div class="quick-actions">${info.buttons.join('')}</div></div>`; }
+function renderTasks(){
+  const tasks = getTasks();
+  document.getElementById('section-tasks').innerHTML = tasks.length ? `<div class="list-grid">${tasks.map(taskCard).join('')}</div>` : '<div class="empty">אין כרגע משימות פתוחות.</div>';
+}
+function renderStatus(){
+  const ordered = state.orders.filter(o=>['הוזמן מהספק','בדרך לחנות','הגיע לחנות','הלקוחה עודכנה','ממתין לאיסוף','ממתין למשלוח','נמסר מהחנות','נמסר במשלוח'].includes(o.status));
+  const todayExpected = ordered.filter(o=>o.expectedArrival===todayDate());
+  const todayArrived = todayExpected.filter(o=>['הגיע לחנות','הלקוחה עודכנה','ממתין לאיסוף','ממתין למשלוח','נמסר מהחנות','נמסר במשלוח'].includes(o.status));
+  const late = ordered.filter(o=>o.expectedArrival && o.expectedArrival < todayDate() && !['הגיע לחנות','הלקוחה עודכנה','ממתין לאיסוף','ממתין למשלוח','נמסר מהחנות','נמסר במשלוח'].includes(o.status));
+  const deliveries = state.orders.filter(o=>o.shipping?.requested);
+  const html = `
+    <div class="grid-4">
+      ${kpiCard('הוזמנו מהספק', ordered.length, 'סך הזמנות פעילות')}
+      ${kpiCard('אמורות להגיע היום', todayExpected.length, 'לפי תאריך צפוי')}
+      ${kpiCard('הגיעו היום', todayArrived.length, 'אספקה לחנות')}
+      ${kpiCard('באיחור', late.length, 'דורש טיפול')}
+    </div>
+    <div class="grid-2" style="margin-top:16px">
+      <div class="panel pad">
+        <h3 style="margin-top:0">מעקב הזמנות מהספק להיום</h3>
+        ${supplierStatusTable(todayExpected)}
+      </div>
+      <div class="panel pad">
+        <h3 style="margin-top:0">משלוחים</h3>
+        <div class="grid-2">
+          <div class="kpi"><div class="num">${deliveries.length}</div><div class="label">עם בקשת משלוח</div></div>
+          <div class="kpi"><div class="num">${deliveries.filter(o=>o.shipping?.shippingPaid==='כן').length}</div><div class="label">דמי משלוח שולמו</div></div>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('section-status').innerHTML = html;
+}
+function supplierStatusTable(list){
+  if(!list.length) return '<div class="empty">אין הזמנות שמיועדות להגיע היום.</div>';
+  const by = {};
+  list.forEach(o=>{ const name=supplierName(o.supplierId); by[name] = by[name] || {exp:0,arr:0,late:0}; by[name].exp++; if(['הגיע לחנות','הלקוחה עודכנה','ממתין לאיסוף','ממתין למשלוח','נמסר מהחנות','נמסר במשלוח'].includes(o.status)) by[name].arr++; if(o.expectedArrival < todayDate() && !['הגיע לחנות','הלקוחה עודכנה','ממתין לאיסוף','ממתין למשלוח','נמסר מהחנות','נמסר במשלוח'].includes(o.status)) by[name].late++; });
+  return `<div class="tableWrap"><table class="table"><thead><tr><th>ספק</th><th>אמור להגיע</th><th>הגיע</th><th>עדיין לא הגיע</th></tr></thead><tbody>${Object.entries(by).map(([name,v])=>`<tr><td>${name}</td><td>${v.exp}</td><td>${v.arr}</td><td>${v.exp-v.arr}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function renderAvailability(){
+  const list = state.availabilityChecks.slice().sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  document.getElementById('section-availability').innerHTML = `<div class="filters"><button class="btn primary" id="newAvailabilityInside" type="button">בדיקת זמינות חדשה</button></div>${list.length?`<div class="list-grid">${list.map(availCard).join('')}</div>`:'<div class="empty">אין עדיין בדיקות זמינות במערכת.</div>'}`;
+  const btn = document.getElementById('newAvailabilityInside'); if(btn) btn.onclick = ()=>openAvailabilityModal();
+}
+function availCard(r){ return `<div class="record-card"><div class="record-head"><div><div class="record-title">${r.customerName} • ${r.productName}</div><div class="helper-text">${r.model || ''} ${r.size || ''}</div></div>${statusChip(r.status)}</div><div class="record-meta"><div class="meta"><label>ספק</label>${supplierName(r.supplierId)}</div><div class="meta"><label>פעולה הבאה</label>${r.nextAction || '—'}</div><div class="meta"><label>טלפון</label>${r.phone || '—'}</div><div class="meta"><label>נפתח</label>${fmtDate(r.createdAt)}</div></div><div class="quick-actions"><button type="button" onclick="openRecordById('availability','${r.id}')">פתח כרטיס</button>${r.status!=='הפך להזמנה' && r.status!=='בוטל' ? `<button class="primary" type="button" onclick="convertAvailabilityToOrder('${r.id}')">יש מלאי - פתח הזמנה</button>`:''}</div></div>`; }
+function renderOrders(){
+  const list = state.orders.slice().sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  document.getElementById('section-orders').innerHTML = `${list.length?`<div class="tableWrap"><table class="table"><thead><tr><th>מספר</th><th>לקוחה</th><th>מוצר</th><th>ספק</th><th>סטטוס</th><th>תשלום</th><th>אספקה צפויה</th><th>פעולות</th></tr></thead><tbody>${list.map(orderRow).join('')}</tbody></table></div>`:'<div class="empty">אין עדיין הזמנות במערכת.</div>'}`;
+}
+function orderRow(r){ return `<tr><td>${r.id}</td><td>${r.customerName}<div class="helper-text">${r.phone||''}</div></td><td>${r.productName}<div class="helper-text">${r.model||''} ${r.size||''}</div></td><td>${supplierName(r.supplierId)}</td><td>${statusChip(r.status)}</td><td>${statusChip(r.paymentStatus || 'ללא תשלום')}</td><td>${fmtShortDate(r.expectedArrival)}</td><td><div class="inline-row"><button type="button" onclick="openRecordById('order','${r.id}')">פתח</button></div></td></tr>`; }
+function renderArrived(){
+  const list = state.orders.filter(o=>['הגיע לחנות','הלקוחה עודכנה','ממתין לאיסוף','ממתין למשלוח'].includes(o.status)).sort((a,b)=>b.createdAt.localeCompare(a.createdAt));
+  document.getElementById('section-arrived').innerHTML = list.length?`<div class="list-grid">${list.map(arrivedCard).join('')}</div>`:'<div class="empty">אין הזמנות שהגיעו כרגע.</div>';
+}
+function arrivedCard(r){
+  const canRelease = canReleaseOrder(r);
+  return `<div class="record-card"><div class="record-head"><div><div class="record-title">${r.customerName} • ${r.productName}</div><div class="helper-text">הגיע לחנות: ${fmtShortDate(r.arrivedAt || r.updatedAt || r.createdAt)}</div></div>${statusChip(r.status)}</div><div class="record-meta"><div class="meta"><label>תשלום</label>${statusChip(r.paymentStatus || 'ללא תשלום')}<div class="helper-text">${paymentSummary(r)}</div></div><div class="meta"><label>מסירה</label>${r.shipping?.requested ? 'משלוח' : 'איסוף מהחנות'}</div></div>${!canRelease ? `<div class="notice" style="margin-top:12px">לא ניתן למסור את ההזמנה לפני תשלום מלא. יש לעדכן תשלום לפני איסוף או מסירה.</div>` : ''}<div class="quick-actions"><button type="button" onclick="openPaymentModalForOrder('${r.id}')">עדכן תשלום</button><button type="button" onclick="markCustomerNotified('${r.id}')">עדכון לקוחה</button><button type="button" ${canRelease ? `onclick="markCollected('${r.id}')"` : 'disabled'}>נאסף מהחנות</button><button class="primary" type="button" onclick="openShippingForOrder('${r.id}')">מעבר למשלוח</button></div></div>`;
+}
+function deliveryRow(r){
+  const s=r.shipping||{};
+  const canRelease = canReleaseOrder(r);
+  return `<tr><td>${r.customerName}<div class="helper-text">${r.phone||''}</div></td><td>${s.city||''} ${s.street||''}</td><td>${s.chargeType || 'לא רלוונטי'} ${s.shippingPrice ? '• ₪'+s.shippingPrice : ''}</td><td>${s.shippingPaid || 'לא'}<div class="helper-text">${paymentSummary(r)}</div></td><td>${statusChip(r.status)}</td><td><div class="inline-row"><button type="button" onclick="openRecordById('order','${r.id}')">פתח</button><button type="button" onclick="openPaymentModalForOrder('${r.id}')">עדכן תשלום</button><button type="button" ${canRelease ? `onclick="markDelivered('${r.id}')"` : 'disabled'}>נמסר</button></div></td></tr>`;
+}
+function runSearch(){
+  const q = (document.getElementById('searchInput').value || '').trim();
+  if(!q){ document.getElementById('searchResults').innerHTML='הקלד משהו לחיפוש.'; return; }
+  const results = [];
+  state.orders.forEach(o=>{ if(JSON.stringify(o).includes(q)) results.push({type:'order',id:o.id,title:`הזמנה • ${o.customerName} • ${o.productName}`,status:o.status}); });
+  state.availabilityChecks.forEach(o=>{ if(JSON.stringify(o).includes(q)) results.push({type:'availability',id:o.id,title:`בדיקת זמינות • ${o.customerName} • ${o.productName}`,status:o.status}); });
+  document.getElementById('searchResults').innerHTML = results.length ? `<div class="list-grid" style="margin-top:12px">${results.map(r=>`<div class="record-card"><div class="record-head"><div class="record-title">${r.title}</div>${statusChip(r.status)}</div><div class="quick-actions"><button type="button" onclick="openRecordById('${r.type}','${r.id}')">פתח כרטיס</button></div></div>`).join('')}</div>` : 'לא נמצאו תוצאות.';
+}
+
+function renderDeliveries(){
+  const list = state.orders.filter(o=>o.shipping?.requested).sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+  document.getElementById('section-deliveries').innerHTML = list.length
+    ? `<div class="tableWrap"><table class="table"><thead><tr><th>לקוחה</th><th>כתובת</th><th>חיוב משלוח</th><th>שולם</th><th>סטטוס</th><th>פעולות</th></tr></thead><tbody>${list.map(deliveryRow).join('')}</tbody></table></div>`
+    : '<div class="empty">אין כרגע משלוחים במערכת.</div>';
+}
+function deliveryRow(r){
+  const s = r.shipping || {};
+  return `<tr><td>${r.customerName}<div class="helper-text">${r.phone||''}</div></td><td>${[s.city||'', s.street||''].filter(Boolean).join(' ') || '—'}</td><td>${s.chargeType || 'לא רלוונטי'}${s.shippingPrice ? ' • ₪' + Number(s.shippingPrice).toLocaleString('he-IL') : ''}</td><td>${s.shippingPaid || 'לא'}</td><td>${statusChip(r.status)}</td><td><div class="inline-row"><button type="button" onclick="openRecordById('order','${r.id}')">פתח</button><button type="button" onclick="markDelivered('${r.id}')">נמסר</button></div></td></tr>`;
+}
+function renderSearch(){
+  document.getElementById('section-search').innerHTML = `<div class="panel pad"><div class="filters"><input id="searchInput" placeholder="חפש לפי שם, טלפון, מוצר או מספר הזמנה" /><button class="btn soft" id="searchBtn" type="button">חפש</button><button class="btn primary" id="searchAvailabilityBtn" type="button">בדיקת זמינות חדשה</button></div><div id="searchResults" class="helper-text">חפש כדי לראות תוצאות.</div></div>`;
+  const searchBtn = document.getElementById('searchBtn');
+  const searchAvailabilityBtn = document.getElementById('searchAvailabilityBtn');
+  const searchInput = document.getElementById('searchInput');
+  if(searchBtn) searchBtn.onclick = runSearch;
+  if(searchAvailabilityBtn) searchAvailabilityBtn.onclick = ()=>openAvailabilityModal();
+  if(searchInput) searchInput.onkeydown = (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); runSearch(); } };
+}
+
+function renderCustomers(){
+  const list = state.customers.slice().sort((a,b)=>a.customerName.localeCompare(b.customerName));
+  document.getElementById('section-customers').innerHTML = list.length?`<div class="list-grid">${list.map(c=>`<div class="record-card"><div class="record-head"><div><div class="record-title">${c.customerName}</div><div class="helper-text">${c.phone || ''}</div></div>${statusChip('לקוחה')}</div><div class="record-meta"><div class="meta"><label>טלפון נוסף</label>${c.phone2||'—'}</div><div class="meta"><label>מייל</label>${c.email||'—'}</div><div class="meta"><label>כתובת</label>${c.address||'—'}</div><div class="meta"><label>עודכן לאחרונה</label>${fmtShortDate(c.updatedAt)}</div></div></div>`).join('')}</div>`:'<div class="empty">אין עדיין לקוחות שמורים.</div>';
+}
+function renderSuppliers(){
+  const list = state.suppliers;
+  document.getElementById('section-suppliers').innerHTML = `
+    <div class="panel pad" style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div>
+        <h3 style="margin:0 0 6px">ספקים</h3>
+        <div class="helper-text">כאן מוסיפים ספקים חדשים, עורכים אותם, והם מסתנכרנים מיד בכל המערכת.</div>
+      </div>
+      <button class="btn primary" id="addSupplierBtn" type="button">${icons('plus')}<span>הוסף חדש</span></button>
+    </div>
+    ${list.length ? `<div class="list-grid">${list.map(s=>`<div class="record-card"><div class="record-head"><div><div class="record-title">${s.name}</div><div class="helper-text">${s.contact||''}</div></div>${statusChip('ספק')}</div><div class="record-meta"><div class="meta"><label>טלפון</label>${s.phone||'—'}</div><div class="meta"><label>וואטסאפ</label>${s.whatsapp||'—'}</div><div class="meta"><label>מייל</label>${s.email||'—'}</div><div class="meta"><label>זמן אספקה משוער</label>${s.leadDays||'—'} ימים</div><div class="meta"><label>הזמנות פעילות</label>${state.orders.filter(o=>o.supplierId===s.id && !['נמסר מהחנות','נמסר במשלוח','בוטל'].includes(o.status)).length}</div><div class="meta"><label>בדיקות פתוחות</label>${state.availabilityChecks.filter(o=>o.supplierId===s.id && !['הפך להזמנה','בוטל'].includes(o.status)).length}</div></div>${s.notes ? `<div class="task-compact"><div class="line"><strong>הערות:</strong> ${s.notes}</div></div>` : ''}<div class="quick-actions"><button type="button" onclick="openSupplierModal('${s.id}')">ערוך ספק</button></div></div>`).join('')}</div>` : '<div class="empty">אין עדיין ספקים שמורים.</div>'}`;
+  const btn = document.getElementById('addSupplierBtn'); if(btn) btn.onclick = ()=>openSupplierModal();
+}
+function renderEmployeesSection(){
+  const list = getEmployees(true);
+  document.getElementById('section-employees').innerHTML = `
+    <div class="panel pad" style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div>
+        <h3 style="margin:0 0 6px">ניהול עובדות</h3>
+        <div class="helper-text">כאן מוסיפים עובדות חדשות, עורכים שמות קיימים, ומסמנים מי פעילה לבחירה במסך הכניסה.</div>
+      </div>
+      <button class="btn primary" id="addEmployeeBtn" type="button">${icons('plus')}<span>הוסף חדש</span></button>
+    </div>
+    ${list.length ? `<div class="list-grid">${list.map(e=>`<div class="record-card"><div class="record-head"><div><div class="record-title">${e.name}</div><div class="helper-text">${e.notes || 'ללא הערה'}</div></div>${statusChip(e.active===false ? 'לא פעילה' : 'פעילה')}</div><div class="record-meta"><div class="meta"><label>בדיקות זמינות</label>${state.availabilityChecks.filter(r=>r.createdBy===e.name).length}</div><div class="meta"><label>הזמנות</label>${state.orders.filter(r=>r.createdBy===e.name).length}</div><div class="meta"><label>עובדת פעילה עכשיו</label>${ui.currentEmployee===e.name ? 'כן' : 'לא'}</div><div class="meta"><label>זמינה לבחירה</label>${e.active===false ? 'לא' : 'כן'}</div></div><div class="quick-actions"><button type="button" onclick="openEmployeeModal('${e.id}')">ערוך עובדת</button>${e.active!==false ? `<button class="primary" type="button" data-set-employee="${e.id}">קבעי כפעילה</button>` : ''}</div></div>`).join('')}</div>` : '<div class="empty">אין עדיין עובדות במערכת.</div>'}`;
+  const btn = document.getElementById('addEmployeeBtn'); if(btn) btn.onclick = ()=>openEmployeeModal();
+  document.querySelectorAll('[data-set-employee]').forEach(btn=>{
+    btn.onclick = ()=>{
+      const rec = getEmployees(true).find(emp=>emp.id===btn.dataset.setEmployee);
+      if(!rec) return;
+      ui.currentEmployee = rec.name;
+      updateActiveEmployeeUI();
+      saveState();
+      renderApp();
+      showSection('home');
+      showToast('העובדת הפעילה הוחלפה');
+    };
+  });
+}
+function renderReports(){
+  const html = `<div class="grid-3">
+    ${kpiCard('בדיקות פתוחות', state.availabilityChecks.filter(x=>!['הפך להזמנה','בוטל'].includes(x.status)).length, 'בדיקות')}
+    ${kpiCard('הזמנות פתוחות', state.orders.filter(x=>!['נמסר מהחנות','נמסר במשלוח','בוטל'].includes(x.status)).length, 'הזמנות')}
+    ${kpiCard('משלוחים בתשלום', state.orders.filter(o=>o.shipping?.requested && o.shipping?.chargeType==='בתשלום').length, 'משלוחים')}
+  </div>
+  <div class="panel pad" style="margin-top:16px">
+    <h3 style="margin-top:0">סיכום לפי עובדת</h3>
+    <div class="tableWrap"><table class="table"><thead><tr><th>עובדת</th><th>בדיקות זמינות</th><th>הזמנות</th></tr></thead><tbody>${getEmployees(true).map(emp=>`<tr><td>${emp.name}</td><td>${state.availabilityChecks.filter(r=>r.createdBy===emp.name).length}</td><td>${state.orders.filter(r=>r.createdBy===emp.name).length}</td></tr>`).join('')}</tbody></table></div>
+  </div>`;
+  document.getElementById('section-reports').innerHTML = html;
+}
+function openRecordById(type,id){
+  const record = type==='order' ? state.orders.find(x=>x.id===id) : state.availabilityChecks.find(x=>x.id===id);
+  if(!record) return;
+  const content = type==='order' ? orderModalContent(record) : availabilityModalContent(record);
+  document.getElementById('recordModalContent').innerHTML = content;
+  bindRecordModalActions(type,record.id);
+  openModal('recordModalWrap');
+}
+window.openRecordById = openRecordById;
+function availabilityModalContent(r){
+  return `<div class="record-card"><div class="record-head"><div><div class="record-title">${r.customerName} • ${r.productName}</div><div class="helper-text">נפתח: ${fmtDate(r.createdAt)}</div></div>${statusChip(r.status)}</div><div class="record-meta"><div class="meta"><label>טלפון</label>${r.phone||'—'}</div><div class="meta"><label>ספק</label>${supplierName(r.supplierId)}</div><div class="meta"><label>דגם / מידה</label>${r.model||'—'} ${r.size||''}</div><div class="meta"><label>פעולה הבאה</label>${r.nextAction||'—'}</div></div><div class="field" style="margin-top:12px"><label>הערות</label><div class="notice">${r.notes||'אין הערות'}</div></div><div class="quick-actions"><button id="availAvailableBtn" class="primary" type="button">יש מלאי - פתח הזמנה</button><button id="availUnavailableBtn" type="button">לא קיים אצל הספק</button><button id="availWaitingBtn" type="button">ממתין לתשובת ספק</button></div><div style="margin-top:16px"><strong>היסטוריה</strong>${historyHtml(r.history)}</div></div>`;
+}
+function orderModalContent(r){
+  const steps = ['נפתחה הזמנה','הוזמן מהספק','בדרך לחנות','הגיע לחנות','הלקוחה עודכנה', r.shipping?.requested ? 'ממתין למשלוח' : 'ממתין לאיסוף', r.shipping?.requested ? 'נמסר במשלוח' : 'נמסר מהחנות'];
+  const idx = steps.indexOf(r.status);
+  const canRelease = canReleaseOrder(r);
+  return `<div class="record-card"><div class="record-head"><div><div class="record-title">${r.customerName} • ${r.productName}</div><div class="helper-text">מספר הזמנה: ${r.id}</div></div>${statusChip(r.status)}</div><div class="timeline">${steps.slice(0,6).map((s,i)=>`<div class="node ${idx>i?'done':idx===i?'current':''}">${s}</div>`).join('')}</div><div class="record-meta" style="margin-top:14px"><div class="meta"><label>טלפון</label>${r.phone||'—'}</div><div class="meta"><label>ספק</label>${supplierName(r.supplierId)}</div><div class="meta"><label>תשלום</label>${r.paymentStatus||'—'}<div class="helper-text">${paymentSummary(r)}</div></div><div class="meta"><label>אספקה צפויה</label>${fmtShortDate(r.expectedArrival)}</div><div class="meta"><label>משלוח</label>${r.shipping?.requested ? 'כן' : 'לא'}</div><div class="meta"><label>פעולה הבאה</label>${r.nextAction||nextActionForOrder(r)}</div></div>${!canRelease ? `<div class="notice" style="margin-top:12px">לא ניתן למסור את ההזמנה לפני תשלום מלא.</div>` : ''}<div class="quick-actions"><button id="orderPaymentBtn" type="button">עדכן תשלום</button><button id="orderSupplierBtn" type="button">הזמנה אצל הספק</button><button id="orderTransitBtn" type="button">בדרך לחנות</button><button id="orderArrivedBtn" type="button">הגיע לחנות</button><button id="orderNotifyBtn" type="button">עדכון לקוחה</button><button id="orderCollectedBtn" type="button" ${canRelease ? '' : 'disabled'}>נאסף מהחנות</button><button id="orderDeliveryBtn" class="primary" type="button">מעבר למשלוח</button></div><div style="margin-top:16px"><strong>היסטוריה</strong>${historyHtml(r.history)}</div></div>`;
+}
+function historyHtml(history=[]){
+  if(!history.length) return '<div class="empty" style="margin-top:10px">אין היסטוריה עדיין.</div>';
+  return `<div style="margin-top:10px;display:grid;gap:10px">${history.map(h=>`<div class="meta"><label>${fmtDate(h.at)} • ${h.by}</label>${h.action}${h.notes ? ' — ' + h.notes : ''}</div>`).join('')}</div>`;
+}
+function bindRecordModalActions(type,id){
+  if(type==='availability'){
+    const a = state.availabilityChecks.find(x=>x.id===id); if(!a) return;
+    const av = document.getElementById('availAvailableBtn'); if(av) av.onclick = ()=>convertAvailabilityToOrder(id);
+    const uv = document.getElementById('availUnavailableBtn'); if(uv) uv.onclick = ()=>updateAvailabilityStatus(id,'לא קיים אצל הספק','לעדכן לקוחה שאין מלאי');
+    const wt = document.getElementById('availWaitingBtn'); if(wt) wt.onclick = ()=>updateAvailabilityStatus(id,'ממתין לתשובת ספק','להמשיך מעקב מול ספק');
+  } else {
+    const py = document.getElementById('orderPaymentBtn'); if(py) py.onclick = ()=>openPaymentModalForOrder(id);
+    const os = document.getElementById('orderSupplierBtn'); if(os) os.onclick = ()=>updateOrderStatus(id,'הוזמן מהספק','להמתין לאספקה לחנות');
+    const tr = document.getElementById('orderTransitBtn'); if(tr) tr.onclick = ()=>updateOrderStatus(id,'בדרך לחנות','לעקוב אחר האספקה לחנות');
+    const ar = document.getElementById('orderArrivedBtn'); if(ar) ar.onclick = ()=>markArrived(id);
+    const nt = document.getElementById('orderNotifyBtn'); if(nt) nt.onclick = ()=>markCustomerNotified(id);
+    const co = document.getElementById('orderCollectedBtn'); if(co) co.onclick = ()=>markCollected(id);
+    const de = document.getElementById('orderDeliveryBtn'); if(de) de.onclick = ()=>openShippingForOrder(id);
+  }
+}
+function updateAvailabilityStatus(id,status,nextAction){
+  const r = state.availabilityChecks.find(x=>x.id===id);
+  if(!r) return;
+  r.status = status;
+  r.nextAction = nextAction;
+  r.updatedAt = new Date().toISOString();
+  addHistory(r,'עודכן סטטוס',status);
+  saveState();
+  renderApp();
+  closeModal('recordModalWrap');
+  showToast('בדיקת הזמינות עודכנה');
+}
+window.convertAvailabilityToOrder = function(id){
+  const r = state.availabilityChecks.find(x=>x.id===id); if(!r) return;
+  r.status = 'הפך להזמנה'; r.nextAction = 'הזמנה חדשה נפתחה'; r.updatedAt = new Date().toISOString(); addHistory(r,'הפך להזמנה','יש מלאי אצל הספק'); saveState();
+  closeModal('recordModalWrap');
+  openOrderModal({fromAvailabilityId:id, customerName:r.customerName, phone:r.phone, phone2:r.phone2, email:r.email, category:r.category, productName:r.productName, model:r.model, size:r.size, color:r.color, qty:r.qty, supplierId:r.supplierId, notes:r.notes});
+};
+function updateOrderStatus(id,status,nextAction){
+  const r = state.orders.find(x=>x.id===id);
+  if(!r) return;
+  r.status = status;
+  r.nextAction = nextAction;
+  r.updatedAt = new Date().toISOString();
+  if(status==='הוזמן מהספק' && !r.orderedFromSupplierAt) r.orderedFromSupplierAt = new Date().toISOString();
+  addHistory(r,'עודכן סטטוס',status);
+  saveState();
+  renderApp();
+  closeModal('recordModalWrap');
+  showToast('ההזמנה עודכנה');
+}
+function markArrived(id){
+  const r = state.orders.find(x=>x.id===id);
+  if(!r) return;
+  r.status = 'הגיע לחנות';
+  r.nextAction = 'לעדכן לקוחה שהמוצר הגיע לסניף';
+  r.arrivedAt = new Date().toISOString();
+  r.updatedAt = new Date().toISOString();
+  addHistory(r,'הגיע לחנות');
+  saveState();
+  renderApp();
+  closeModal('recordModalWrap');
+  showToast('סומן שהמוצר הגיע לחנות');
+}
+window.markCustomerNotified = function(id){ const r=state.orders.find(x=>x.id===id); if(!r) return; r.status = r.shipping?.requested ? 'ממתין למשלוח' : 'ממתין לאיסוף'; r.nextAction = r.shipping?.requested ? 'להשלים ולתאם משלוח' : 'להמתין לאיסוף מהחנות'; r.customerNotifiedAt=new Date().toISOString(); r.updatedAt=new Date().toISOString(); addHistory(r,'עודכנה הלקוחה שהמוצר הגיע'); saveState(); renderApp(); showToast('עודכנה הלקוחה'); closeModal('recordModalWrap'); };
+window.markCollected = function(id){ const r=state.orders.find(x=>x.id===id); if(!r) return; if(!canReleaseOrder(r)){ showToast(`לא ניתן למסור בלי תשלום מלא. יתרה לתשלום: ${fmtCurrency(r.balanceAmount || 0)}`); openPaymentModalForOrder(id); return; } r.status='נמסר מהחנות'; r.nextAction='הושלם'; r.collectedAt=new Date().toISOString(); r.updatedAt=new Date().toISOString(); addHistory(r,'נאסף מהחנות'); saveState(); renderApp(); showToast('סומן כנאסף מהחנות'); closeModal('recordModalWrap'); };
+window.openShippingForOrder = function(id){ const r=state.orders.find(x=>x.id===id); if(!r) return; ui.shippingTargetOrderId = id; openShippingModal(r.shipping); };
+window.markDelivered = function(id){ const r=state.orders.find(x=>x.id===id); if(!r) return; if(!canReleaseOrder(r)){ showToast(`לא ניתן למסור במשלוח בלי תשלום מלא. יתרה לתשלום: ${fmtCurrency(r.balanceAmount || 0)}`); openPaymentModalForOrder(id); return; } r.status='נמסר במשלוח'; r.nextAction='הושלם'; r.deliveredAt=new Date().toISOString(); r.updatedAt=new Date().toISOString(); addHistory(r,'נמסר במשלוח'); saveState(); renderApp(); showToast('המשלוח סומן כנמסר'); };
+
+document.getElementById('availabilityForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const f = e.target;
+  const customerId = ensureCustomer({customerName:f.customerName.value, phone:f.phone.value, phone2:f.phone2.value, email:f.email.value});
+  const rec = {id:nextId('A'), customerId, customerName:f.customerName.value, phone:f.phone.value, phone2:f.phone2.value, email:f.email.value, category:f.category.value, productName:f.productName.value, model:f.model.value, size:f.size.value, color:f.color.value, qty:Number(f.qty.value||1), supplierId:f.supplierId.value, notes:f.notes.value, followUpDate:f.followUpDate.value, status:'ממתין לבדיקת ספק', nextAction:f.supplierId.value ? 'להתקשר לספק ולבדוק זמינות' : 'לבחור ספק ולבדוק זמינות', createdAt:new Date().toISOString(), updatedAt:new Date().toISOString(), createdBy:ui.currentEmployee, history:[]};
+  addHistory(rec,'נפתחה בדיקת זמינות'); state.availabilityChecks.unshift(rec); saveState(); closeModal('availabilityModalWrap'); renderApp(); showSection('availability'); showToast('בדיקת זמינות נשמרה');
+});
+
+document.getElementById('orderForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const f = e.target;
+  const customerId = ensureCustomer({customerName:f.customerName.value, phone:f.phone.value, phone2:f.phone2.value, email:f.email.value, address:f.address.value});
+  const editId = f.editId.value;
+  let rec = editId ? state.orders.find(x=>x.id===editId) : null;
+  if(!rec){ rec = {id:nextId('O'), createdAt:new Date().toISOString(), history:[]}; state.orders.unshift(rec); addHistory(rec,'נפתחה הזמנה חדשה'); }
+  Object.assign(rec,{customerId, customerName:f.customerName.value, phone:f.phone.value, phone2:f.phone2.value, address:f.address.value, email:f.email.value, category:f.category.value, productName:f.productName.value, model:f.model.value, size:f.size.value, color:f.color.value, qty:Number(f.qty.value||1), supplierId:f.supplierId.value, paymentStatus:f.paymentStatus.value, paidAmount:Number(f.paidAmount.value||0), balanceAmount:Number(f.balanceAmount.value||0), paymentMethod:f.paymentMethod.value, notes:f.notes.value, shipping: ui.currentShippingDraft || null, status:'נפתחה הזמנה', nextAction:'להזמין אצל הספק את המוצר המבוקש', createdBy:rec.createdBy || ui.currentEmployee, updatedAt:new Date().toISOString()});
+  const supplier = state.suppliers.find(s=>s.id===rec.supplierId);
+  if(supplier){ const d = new Date(); d.setDate(d.getDate() + (supplier.leadDays||2)); rec.expectedArrival = d.toISOString().slice(0,10); }
+  if(f.fromAvailabilityId.value){ const a = state.availabilityChecks.find(x=>x.id===f.fromAvailabilityId.value); if(a){ a.status='הפך להזמנה'; a.nextAction='הזמנה נפתחה בפועל'; a.updatedAt=new Date().toISOString(); addHistory(a,'הפך להזמנה'); }}
+  saveState(); closeModal('orderModalWrap'); renderApp(); showSection('orders'); showToast('ההזמנה נשמרה');
+});
+
+document.getElementById('shippingForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const f = e.target;
+  ui.currentShippingDraft = { requested: document.getElementById('shippingRequested').checked, recipientName:f.recipientName.value, recipientPhone:f.recipientPhone.value, city:f.city.value, street:f.street.value, chargeType:f.chargeType.value, shippingPrice:Number(f.shippingPrice.value||0), shippingPaid:f.shippingPaid.value, freeReason:f.freeReason.value, deliveryNotes:f.deliveryNotes.value };
+  updateShippingSummary();
+  if(ui.shippingTargetOrderId){ const r = state.orders.find(x=>x.id===ui.shippingTargetOrderId); if(r){ r.shipping = ui.currentShippingDraft; r.status = 'ממתין למשלוח'; r.nextAction = 'לתאם משלוח'; r.updatedAt = new Date().toISOString(); addHistory(r,'הוגדר משלוח'); saveState(); renderApp(); showToast('פרטי המשלוח נשמרו'); } ui.shippingTargetOrderId=''; }
+  closeModal('shippingModalWrap');
+});
+
+
+document.getElementById('paymentForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const id = ui.paymentTargetOrderId;
+  const r = state.orders.find(x=>x.id===id);
+  if(!r) return;
+  const f = e.target;
+  const reopenRecordModal = document.getElementById('recordModalWrap').classList.contains('show');
+  let paymentStatus = f.paymentStatus.value;
+  let paidAmount = Number(f.paidAmount.value || 0);
+  let balanceAmount = Number(f.balanceAmount.value || 0);
+  if(balanceAmount <= 0){
+    balanceAmount = 0;
+    paymentStatus = 'שולם מלא';
+  }else if(paidAmount > 0 && paymentStatus === 'ללא תשלום'){
+    paymentStatus = 'שולם חלקית';
+  }
+  r.paymentStatus = paymentStatus;
+  r.paidAmount = paidAmount;
+  r.balanceAmount = balanceAmount;
+  r.paymentMethod = f.paymentMethod.value;
+  r.updatedAt = new Date().toISOString();
+  addHistory(r,'עודכן תשלום', f.paymentNote.value || `${paymentStatus} • שולם ${fmtCurrency(paidAmount)} • יתרה ${fmtCurrency(balanceAmount)}`);
+
+  closeModal('paymentModalWrap');
+  f.reset();
+  ui.paymentTargetOrderId = '';
+
+  saveState();
+  renderApp();
+  showToast(balanceAmount === 0 ? 'התשלום הושלם במלואו' : 'נתוני התשלום עודכנו');
+
+  if(reopenRecordModal){
+    requestAnimationFrame(()=>openRecordById('order', id));
+  }
+});
+
+
+document.getElementById('supplierForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const f = e.target;
+  const supplierId = f.supplierId.value.trim();
+  const rec = {id:supplierId || nextId('sup'), name:f.name.value.trim(), contact:f.contact.value.trim(), phone:f.phone.value.trim(), whatsapp:f.whatsapp.value.trim(), email:f.email.value.trim(), leadDays:Number(f.leadDays.value||0), notes:f.notes.value.trim(), createdAt:new Date().toISOString()};
+  if(!rec.name){ showToast('יש להזין שם ספק'); return; }
+  if(supplierId){
+    const existing = state.suppliers.find(s=>s.id===supplierId);
+    if(existing) Object.assign(existing, rec, {createdAt: existing.createdAt || rec.createdAt});
+  }else{
+    state.suppliers.unshift(rec);
+  }
+  saveState();
+  populateSupplierSelects();
+  renderApp();
+  closeModal('supplierModalWrap');
+  f.reset();
+  showSection('suppliers');
+  showToast(supplierId ? 'פרטי הספק עודכנו' : 'הספק נשמר במערכת');
+});
+
+document.getElementById('employeeForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const f = e.target;
+  const employeeId = f.employeeId.value.trim();
+  const newName = f.name.value.trim();
+  if(!newName){ showToast('יש להזין שם עובדת'); return; }
+  if(employeeNameExists(newName, employeeId)){ showToast('קיימת כבר עובדת בשם הזה'); return; }
+  if(employeeId){
+    const existing = getEmployees(true).find(emp=>emp.id===employeeId);
+    if(!existing) return;
+    const oldName = existing.name;
+    existing.name = newName;
+    existing.notes = f.notes.value.trim();
+    existing.active = f.active.value === 'כן';
+    state.availabilityChecks.forEach(r=>{
+      if(r.createdBy===oldName) r.createdBy = newName;
+      (r.history||[]).forEach(h=>{ if(h.by===oldName) h.by = newName; });
+    });
+    state.orders.forEach(r=>{
+      if(r.createdBy===oldName) r.createdBy = newName;
+      (r.history||[]).forEach(h=>{ if(h.by===oldName) h.by = newName; });
+    });
+    if(ui.currentEmployee===oldName){
+      ui.currentEmployee = newName;
+      updateActiveEmployeeUI();
+    }
+  }else{
+    state.employees.unshift({id:nextId('emp'), name:newName, notes:f.notes.value.trim(), active:f.active.value === 'כן'});
+  }
+  saveState();
+  renderEmployees();
+  renderApp();
+  closeModal('employeeModalWrap');
+  f.reset();
+  showSection('employees');
+  showToast(employeeId ? 'פרטי העובדת עודכנו' : 'העובדת נשמרה במערכת');
+});
+
+document.getElementById('orderShippingBtn').addEventListener('click', ()=> openShippingModal());
+document.getElementById('entryNewOrder').addEventListener('click', ()=>toEmployeeSelection('newOrder'));
+document.getElementById('entryCheckOrder').addEventListener('click', ()=>toEmployeeSelection('checkOrder'));
+document.getElementById('backToEntry').addEventListener('click', backToEntry);
+document.getElementById('goHomeFromEntry').addEventListener('click', goHomeFromEntry);
+document.getElementById('headerAvailabilityBtn').addEventListener('click', ()=>openAvailabilityModal());
+document.getElementById('headerOrderBtn').addEventListener('click', ()=>openOrderModal());
+document.getElementById('openTutorial').addEventListener('click', ()=>openModal('tutorialModalWrap'));
+document.getElementById('loadSamplesBtn').addEventListener('click', loadSampleData);
+document.getElementById('exportJsonBtn').addEventListener('click', exportJson);
+document.getElementById('importJsonBtn').addEventListener('click', ()=>document.getElementById('importJsonInput').click());
+document.getElementById('importJsonInput').addEventListener('change', importJson);
+document.querySelectorAll('[data-close]').forEach(btn=>btn.addEventListener('click', ()=>closeModal(btn.dataset.close)));
+document.querySelectorAll('.modalWrap').forEach(w=>w.addEventListener('click', e=>{ if(e.target===w) w.classList.remove('show'); }));
+
+function exportJson(){ const blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='orders_system_data.json'; a.click(); URL.revokeObjectURL(a.href); showToast('הנתונים יוצאו לקובץ JSON'); }
+function importJson(e){ const file = e.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = ()=>{ try{ const parsed=JSON.parse(reader.result); state = normalizeState(parsed); saveState(); renderEmployees(); renderApp(); showToast('הנתונים יובאו בהצלחה'); }catch(err){ alert('קובץ לא תקין'); } }; reader.readAsText(file); e.target.value=''; }
+function loadSampleData(){
+  state = sampleData(); saveState(); renderEmployees(); populateSupplierSelects(); renderApp(); showToast('נטענו נתוני דוגמה');
+}
+function sampleData(){
+  return {
+    lastId: 3020,
+    suppliers: defaultSuppliers(),
+    employees: defaultEmployees(),
+    customers:[
+      {id:'C3001',customerName:'שרה לוי',phone:'052-5551234',phone2:'050-4123456',email:'',address:'רמב"ם 12 בית שמש',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()},
+      {id:'C3002',customerName:'חנה כהן',phone:'052-8881122',phone2:'',email:'',address:'חזון איש 18 ירושלים',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()},
+      {id:'C3003',customerName:'אסתר פרידמן',phone:'054-7776633',phone2:'',email:'',address:'שמואל הנביא 5 בני ברק',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}
+    ],
+    availabilityChecks:[
+      {id:'A3005',customerId:'C3001',customerName:'שרה לוי',phone:'052-5551234',phone2:'050-4123456',email:'',category:'מצעים',productName:'סט מצעים סאטן',model:'דגם מלכות',size:'110 ס"מ',color:'שמנת',qty:1,supplierId:'sup3',notes:'ראתה בחנות 90 ס"מ ורוצה לבדוק 110',followUpDate:todayDate(),status:'ממתין לבדיקת ספק',nextAction:'לבדוק מול ספק',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),createdBy:'רחל',history:[{at:new Date().toISOString(),by:'רחל',action:'נפתחה בדיקת זמינות',notes:''}]},
+      {id:'A3006',customerId:'C3003',customerName:'אסתר פרידמן',phone:'054-7776633',phone2:'',email:'',category:'מגבות',productName:'מגבת רחצה פרימיום',model:'טורקיז ליין',size:'90X150',color:'אפור',qty:4,supplierId:'sup2',notes:'לחזור אחרי תשובת ספק',followUpDate:todayDate(),status:'ממתין לתשובת ספק',nextAction:'להמשיך מעקב מול ספק',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),createdBy:'חיה',history:[{at:new Date().toISOString(),by:'חיה',action:'נפתחה בדיקת זמינות',notes:''}]}
+    ],
+    orders:[
+      {id:'O3007',customerId:'C3002',customerName:'חנה כהן',phone:'052-8881122',phone2:'',address:'חזון איש 18 ירושלים',email:'',category:'מצעים',productName:'סט מצעים כותנה',model:'לילה טוב',size:'100 ס"מ',color:'לבן',qty:2,supplierId:'sup1',paymentStatus:'שולם חלקית',paidAmount:150,balanceAmount:130,paymentMethod:'אשראי',notes:'תעדכן כשמגיע',shipping:null,status:'הוזמן מהספק',nextAction:'להמתין לאספקה לחנות',createdBy:'שרה',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),orderedFromSupplierAt:new Date().toISOString(),expectedArrival:todayDate(),history:[{at:new Date().toISOString(),by:'שרה',action:'נפתחה הזמנה חדשה',notes:''},{at:new Date().toISOString(),by:'שרה',action:'עודכן סטטוס',notes:'הוזמן מהספק'}]},
+      {id:'O3008',customerId:'C3001',customerName:'שרה לוי',phone:'052-5551234',phone2:'050-4123456',address:'רמב"ם 12 בית שמש',email:'',category:'מפה',productName:'מפת שולחן חגיגית',model:'כסף קלאסי',size:'3 מטר',color:'לבן',qty:1,supplierId:'sup4',paymentStatus:'שולם מלא',paidAmount:220,balanceAmount:0,paymentMethod:'מזומן',notes:'מבקשת משלוח אם לא תגיע',shipping:{requested:true,recipientName:'שרה לוי',recipientPhone:'052-5551234',city:'בית שמש',street:'רמב"ם 12',chargeType:'חינם',shippingPrice:0,shippingPaid:'כן',freeReason:'לקוחה קבועה',deliveryNotes:'צלצול אחד'},status:'הלקוחה עודכנה',nextAction:'להשלים ולתאם משלוח',createdBy:'רחל',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),orderedFromSupplierAt:new Date().toISOString(),expectedArrival:todayDate(),arrivedAt:new Date().toISOString(),customerNotifiedAt:new Date().toISOString(),history:[{at:new Date().toISOString(),by:'רחל',action:'נפתחה הזמנה חדשה',notes:''},{at:new Date().toISOString(),by:'רחל',action:'הגיע לחנות',notes:''},{at:new Date().toISOString(),by:'רחל',action:'עודכנה הלקוחה שהמוצר הגיע',notes:''}]},
+      {id:'O3009',customerId:'C3003',customerName:'אסתר פרידמן',phone:'054-7776633',phone2:'',address:'שמואל הנביא 5 בני ברק',email:'',category:'מגבות',productName:'מגבת פנים',model:'רוז ליין',size:'50X90',color:'בורדו',qty:6,supplierId:'sup2',paymentStatus:'ממתין לתשלום',paidAmount:0,balanceAmount:180,paymentMethod:'',notes:'הזמנה פתוחה',shipping:null,status:'בדרך לחנות',nextAction:'לבדוק אם הגיע לחנות',createdBy:'חיה',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),orderedFromSupplierAt:new Date().toISOString(),expectedArrival:todayDate(),history:[{at:new Date().toISOString(),by:'חיה',action:'נפתחה הזמנה חדשה',notes:''}]}
+    ]
+  };
+}
+window.sampleData = sampleData;
+
+function init(){
+  renderEmployees();
+  updateActiveEmployeeUI();
+  renderNav();
+  populateSupplierSelects();
+  renderSections();
+  if(ui.currentEmployee){ enterApp(); } else { document.getElementById('entryScreen').classList.remove('hidden'); }
+}
+init();
+</script>
+</body>
+</html>
